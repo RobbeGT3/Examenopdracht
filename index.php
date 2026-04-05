@@ -1,8 +1,8 @@
 <?php
 
-if (isset($_GET['error'])) {
-    print($_SESSION['userrole']);
-} 
+// if (isset($_GET['error'])) {
+//     print($_SESSION['userrole']);
+// } 
 ?>
 
 

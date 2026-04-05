@@ -21,7 +21,7 @@ $gebruiker = $result->fetch_assoc();
 if ($gebruiker && password_verify($saltedWachtwoord, $gebruiker['password'])) {
     header('location: ../dashboard.php');
     $_SESSION['is_logged_in'] = true;
-    $_SESSION['userrole'] = $gebruiker['Gebruikerrollen_idGebruikerrollen'];
+    $_SESSION['userrole'] = $gebruiker['rolnaam'];
     exit;
 } else {
     header('location: ../index.php?error=Verkeerde Inloggegevens');
