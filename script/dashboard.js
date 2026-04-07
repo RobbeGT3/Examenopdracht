@@ -54,8 +54,6 @@ logoutBtn.addEventListener('click', () => {
   const confirmed = confirm('Weet je zeker dat je wilt uitloggen?');
 
   if (confirmed) {
-    // alert('Je bent uitgelogd.');
-    // showPage('dashboard');
     window.location.href = "actions/logout.php";
   }
 });

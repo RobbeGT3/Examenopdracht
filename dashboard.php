@@ -245,10 +245,6 @@ $recenteVoedselpakketten = $result1->fetch_all(MYSQLI_ASSOC);
               <p id="recentPackagesText">Nog geen pakketten samengesteld</p>
             <?php endif; ?>
           </div>
-          <div class="card info-card">
-            <h2>Lage Voorraad Waarschuwing</h2>
-            <p id="stockWarningText">Alle producten hebben voldoende voorraad</p>
-          </div>
         </section>
 
         <section class="welcome-card">
@@ -286,15 +282,12 @@ $recenteVoedselpakketten = $result1->fetch_all(MYSQLI_ASSOC);
       </section>
 
       <section id="gebruikers" class="placeholder-page">
-        <!-- <h2>Gebruikers</h2>
-        <p>Hier kun je gebruikers toevoegen, rollen instellen en accounts beheren.</p> -->
-        <?php include 'pages/user.php'?>
+        <h2>Gebruikers</h2>
+        <p>Hier kun je gebruikers toevoegen, rollen instellen en accounts beheren.</p>
       </section>
       <?php endif; ?>
     </main>
   </div>
-
-  <!-- <script src="script.js"></script> -->
-  <script src="dashboard.js"></script>
+  <script src="script/nav.js"></script>
 </body>
 </html>
