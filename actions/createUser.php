@@ -8,8 +8,6 @@ $wachtwoord = $_POST['password'];
 $salt = "9Q3z8T";
 $saltedWachtwoord = $wachtwoord.$salt;
 
-
-
 $hashedPassword = password_hash($saltedWachtwoord, PASSWORD_DEFAULT);
 
 $stmt = $conn->prepare("INSERT INTO Gebruiker (username, password, status, Gebruikerrollen_idGebruikerrollen) VALUES (?, ?, 'Actief', 1)");

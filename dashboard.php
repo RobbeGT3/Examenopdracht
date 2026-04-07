@@ -4,6 +4,8 @@ if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
     die("Page not available");
 }
 
+
+$currentPage = basename($_SERVER['PHP_SELF']);
 require_once  __DIR__. '/common/dbconnection.php';
 
 $aantalKlantenQuery = $conn->prepare("SELECT count(k.idKlanten) FROM Klanten k WHERE k.`status` = 'Goedgekeurd';");
@@ -52,116 +54,7 @@ $recenteVoedselpakketten = $result1->fetch_all(MYSQLI_ASSOC);
 </head>
 <body>
   <div class="app">
-    <aside class="sidebar">
-      <div class="sidebar-top">
-        <div class="brand">
-          <div class="brand-icon"></div>
-          <div class="brand-text">
-            <h1>Voedselbank</h1>
-            <p>
-              <?php
-                echo $_SESSION['userrole']
-              ?>
-            </p>
-          </div>
-        </div>
-
-        <nav class="menu">
-          <button class="menu-btn active" data-page="dashboard">
-            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 10.5 12 3l9 7.5"></path>
-              <path d="M5 9.5V21h14V9.5"></path>
-              <path d="M9 21v-6h6v6"></path>
-            </svg>
-            <span>Dashboard</span>
-          </button>
-
-          <?php if ($_SESSION['userrole'] === 'Magazijnmedewerker' || $_SESSION['userrole'] === 'Directie'): ?>
-          <button class="menu-btn" data-page="leveranciers">
-            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="7" width="11" height="10" rx="2"></rect>
-              <path d="M13 10h4l3 3v4h-7"></path>
-              <circle cx="7.5" cy="18" r="1.5"></circle>
-              <circle cx="17.5" cy="18" r="1.5"></circle>
-            </svg>
-            <span>Leveranciers</span>
-          </button>
-          
-
-          <button class="menu-btn" data-page="voorraad">
-            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"></path>
-              <path d="m12 12 8-4.5"></path>
-              <path d="m12 12-8-4.5"></path>
-              <path d="M12 12v9"></path>
-            </svg>
-            <span>Voorraad</span>
-          </button>
-
-          <?php endif; ?>
-          
-          <?php if ( $_SESSION['userrole'] === 'Directie'): ?>
-          <button class="menu-btn" data-page="klanten">
-            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9.5" cy="7" r="4"></circle>
-              <path d="M20 8v6"></path>
-              <path d="M23 11h-6"></path>
-            </svg>
-            <span>Klanten</span>
-          </button>
-          <?php endif; ?>
-          <?php if ($_SESSION['userrole'] === 'Vrijwilliger' || $_SESSION['userrole'] === 'Directie'): ?>
-          <button class="menu-btn" data-page="voedselpakketten">
-            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="4" y="4" width="16" height="16" rx="3"></rect>
-              <path d="M9 4v3"></path>
-              <path d="M15 4v3"></path>
-              <path d="M4 10h16"></path>
-              <path d="M9 14h6"></path>
-            </svg>
-            <span>Voedselpakketten</span>
-          </button>
-          <?php endif; ?>
-          <?php if ($_SESSION['userrole'] === 'Directie'): ?>
-          <button class="menu-btn" data-page="rapportages">
-            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 20V10"></path>
-              <path d="M10 20V4"></path>
-              <path d="M16 20v-7"></path>
-              <path d="M22 20V8"></path>
-              <path d="M2 20h20"></path>
-            </svg>
-            <span>Rapportages</span>
-          </button>
-
-          <button class="menu-btn" data-page="gebruikers">
-            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="9" cy="8" r="4"></circle>
-              <path d="M17 11v-1"></path>
-              <path d="M17 17v-1"></path>
-              <path d="M14 14h1"></path>
-              <path d="M19 14h1"></path>
-              <path d="M3 21v-2a6 6 0 0 1 6-6"></path>
-            </svg>
-            <span>Gebruikers</span>
-          </button>
-          <?php endif; ?>
-        </nav>
-      </div>
-
-      <div class="sidebar-bottom">
-        <button class="logout-btn" id="logoutBtn">
-          <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-            <path d="M10 17l5-5-5-5"></path>
-            <path d="M15 12H3"></path>
-          </svg>
-          <span>Uitloggen</span>
-        </button>
-      </div>
-    </aside>
-
+    <?php include 'sidebar.php' ?>
     <main class="main">
       <div id="dashboardView" class="dashboard-view">
         <h1 class="page-title">Dashboard</h1>
@@ -245,6 +138,7 @@ $recenteVoedselpakketten = $result1->fetch_all(MYSQLI_ASSOC);
               <p id="recentPackagesText">Nog geen pakketten samengesteld</p>
             <?php endif; ?>
           </div>
+
         </section>
 
         <section class="welcome-card">
@@ -252,40 +146,6 @@ $recenteVoedselpakketten = $result1->fetch_all(MYSQLI_ASSOC);
           <p>U heeft volledige toegang tot alle functionaliteiten van het systeem.</p>
         </section>
       </div>
-      <?php if ($_SESSION['userrole'] === 'Magazijnmedewerker' || $_SESSION['userrole'] === 'Directie'): ?>
-      <section id="leveranciers" class="placeholder-page">
-        <h2>Leveranciers</h2>
-        <p>Hier kun je straks leveranciers beheren, toevoegen en bewerken.</p>
-      </section>
-
-      <section id="voorraad" class="placeholder-page">
-        <h2>Voorraad</h2>
-        <p>Hier komt de voorraadlijst met producten, aantallen en meldingen bij lage voorraad.</p>
-      </section>
-      <?php endif; ?>
-      <?php if ( $_SESSION['userrole'] === 'Directie'): ?>
-      <section id="klanten" class="placeholder-page">
-        <h2>Klanten</h2>
-        <p>Hier kun je klantgegevens bekijken en beheren.</p>
-      </section>
-      <?php endif; ?>
-      <?php if ($_SESSION['userrole'] === 'Vrijwilliger' || $_SESSION['userrole'] === 'Directie'): ?>
-      <section id="voedselpakketten" class="placeholder-page">
-        <h2>Voedselpakketten</h2>
-        <p>Hier kun je voedselpakketten samenstellen en uitgeven.</p>
-      </section>
-      <?php endif; ?>
-      <?php if ($_SESSION['userrole'] === 'Directie'): ?>
-      <section id="rapportages" class="placeholder-page">
-        <h2>Rapportages</h2>
-        <p>Hier kun je rapportages en overzichten bekijken.</p>
-      </section>
-
-      <section id="gebruikers" class="placeholder-page">
-        <h2>Gebruikers</h2>
-        <p>Hier kun je gebruikers toevoegen, rollen instellen en accounts beheren.</p>
-      </section>
-      <?php endif; ?>
     </main>
   </div>
   <script src="script/nav.js"></script>
