@@ -12,7 +12,7 @@ $aantalKlantenQuery = $conn->prepare("SELECT count(k.idKlanten) FROM Klanten k W
 $aantalKlantenQuery->execute();
 $aantalKlantenResult = $aantalKlantenQuery->get_result();
 
-$aantalProductenQuery = $conn->prepare("SELECT COUNT(p.idProducts) FROM Products p;");
+$aantalProductenQuery = $conn->prepare("SELECT SUM(p.aantal) FROM Products p;");
 $aantalProductenQuery->execute();
 $aantalProductenResult = $aantalProductenQuery->get_result();
 
