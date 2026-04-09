@@ -8,10 +8,13 @@ $wachtwoord = $_POST['password'];
 $salt = "9Q3z8T";
 $saltedWachtwoord = $wachtwoord.$salt;
 
-// $stmt = $conn->prepare("SELECT * FROM Gebruiker WHERE username = ?  AND status = 'Actief'");
 $stmt = $conn->prepare("SELECT g.idGebruiker, g.username, g.password, g.`status`, r.rolnaam FROM Gebruiker g 
 INNER JOIN Gebruikerrollen r ON r.idGebruikerrollen = g.Gebruikerrollen_idGebruikerrollen 
 WHERE g.username = ? AND g.`status` = 'Actief';");
+
+// $stmt = $conn->prepare("SELECT g.idGebruiker, g.username, g.password, g.`status`, r.rolnaam FROM Gebruiker g 
+// INNER JOIN Gebruikerrollen r ON r.idGebruikerrollen = g.Gebruikerrollen_idGebruikerrollen 
+// WHERE g.email = ? AND g.`status` = 'Actief';");
 $stmt->bind_param("s", $gebruikersnaam);
 $stmt->execute();
 
