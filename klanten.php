@@ -11,7 +11,8 @@ require_once  __DIR__. '/common/dbconnection.php';
 
 $stmt1 = $conn->prepare("SELECT 
     k.idKlanten,
-    k.naam,
+    k.voornaam,
+    k.achternaam,
     k.adres,
     k.postcode,
     k.woonnplaats,
@@ -41,14 +42,14 @@ $geregistreedeklanten = $result1->fetch_all(MYSQLI_ASSOC);
   <title>Voedselbank Dashboard</title>
   <link rel="stylesheet" href="styles/styles.css"/>
   <style>
-    .header {
+    .klantenHeader {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 25px;
     }
 
-    .page-title {
+    .klantenPage-title {
       font-size: 28px;
       font-weight: 600;
       color: #1f2d3d;
@@ -64,13 +65,13 @@ $geregistreedeklanten = $result1->fetch_all(MYSQLI_ASSOC);
       cursor: pointer;
     }
 
-    .card-container {
+    .klantenCard-container {
       display: flex;
       gap: 25px;
       flex-wrap: wrap;
     }
 
-    .card {
+    .klantenCard {
       background: white;
       border-radius: 12px;
       padding: 20px;
@@ -81,13 +82,13 @@ $geregistreedeklanten = $result1->fetch_all(MYSQLI_ASSOC);
       flex-direction: column;
     }
 
-    .card-header {
+    .klantenCard-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
-    .card-title {
+    .klantenCard-title {
       font-size: 18px;
       font-weight: 600;
       color: #1f2d3d;
@@ -98,12 +99,12 @@ $geregistreedeklanten = $result1->fetch_all(MYSQLI_ASSOC);
       font-size: 18px;
     }
 
-    .card-sub {
+    .klantenCard-sub {
       color: #6c757d;
       margin-bottom: 10px;
     }
 
-    .card-info {
+    .klantenCard-info {
       font-size: 14px;
       margin-bottom: 5px;
     }
@@ -130,7 +131,7 @@ $geregistreedeklanten = $result1->fetch_all(MYSQLI_ASSOC);
       color: #842029;
     }
 
-    .card-actions {
+    .klantenCard-actions {
       margin-top: auto;
       display: flex;
       display: flex;
@@ -162,12 +163,12 @@ $geregistreedeklanten = $result1->fetch_all(MYSQLI_ASSOC);
     <?php include 'sidebar.php' ?>
     <main class="main">
 
-    <div class="header">
-      <h1 class="page-title">Klanten Beheer</h1>
+    <div class="klantenHeader">
+      <h1 class="klantenPage-title">Klanten Beheer</h1>
       <button class="btn-add">+ Nieuwe Klant</button>
     </div>
 
-    <div class="card-container">
+    <div class="klantenCard-container">
 
       <?php foreach ($geregistreedeklanten as $klant): ?>
 
@@ -186,37 +187,37 @@ $geregistreedeklanten = $result1->fetch_all(MYSQLI_ASSOC);
         });
         ?>
 
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <?= htmlspecialchars($klant['naam']) ?>
+        <div class="klantenCard">
+          <div class="klantenCard-header">
+            <div class="klantenCard-title">
+              Familie <?= htmlspecialchars($klant['achternaam']) ?>
             </div>
             <div class="check">✔</div>
           </div>
 
-          <div class="card-sub">
+          <div class="klantenCard-sub">
             <?= htmlspecialchars($klant['postcode']) ?>
           </div>
 
-          <div class="card-info">
+          <div class="klantenCard-info">
             Adres: <?= htmlspecialchars($klant['adres']) ?>
           </div>
 
-          <div class="card-info">
+          <div class="klantenCard-info">
             Plaats: <?= htmlspecialchars($klant['woonnplaats']) ?>
           </div>
 
-          <div class="card-info">
+          <div class="klantenCard-info">
             Tel: <?= htmlspecialchars($klant['telefoonnummer']) ?>
           </div>
 
-          <div class="card-info">
+          <div class="klantenCard-info">
             Email: <?= htmlspecialchars($klant['e-mailadres']) ?>
           </div>
 
-          <?php if (!empty($gefilterdeWensen) || !empty($allergenen)): ?>
+          <?php if (!empty($wensen) || !empty($allergenen)): ?>
             <div class="tags">
-              <?php foreach ($gefilterdeWensen as $wens): ?>
+              <?php foreach ($wensen as $wens): ?>
                 <span class="tag tag-gray">
                   <?= htmlspecialchars(trim($wens)) ?>
                 </span>
@@ -230,7 +231,7 @@ $geregistreedeklanten = $result1->fetch_all(MYSQLI_ASSOC);
             </div>
           <?php endif; ?>
 
-          <div class="card-actions">
+          <div class="klantenCard-actions">
             <button class="btn-edit">Bewerken</button>
             <button class="btn-delete">🗑</button>
           </div>
