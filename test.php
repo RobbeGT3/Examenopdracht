@@ -192,15 +192,6 @@ $opgeslagenWensen = $result2->fetch_all(MYSQLI_ASSOC);
       border: none;
       border-radius: 6px;
     }
-    .wensenContainer{
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;      
-    }
-
-    .wensenContainer input{
-      text-align: center;
-    }
   </style>
 </head>
 <body>
@@ -287,105 +278,115 @@ $opgeslagenWensen = $result2->fetch_all(MYSQLI_ASSOC);
     </div>
 
 
-  <div class="modal-overlay">
-  <div class="modal">
-    
-    <div class="modal-header">
-      <h2>Nieuwe Klant</h2>
-      <button type="button" class="close-btn">✕</button>
+    <!-- popup element -->
+    <div class="modal-overlay">
+      <div class="modal">
+
+        <div class="modal-header">
+          <h2>Nieuwe Klant</h2>
+          <button class="close-btn">✕</button>
+        </div>
+
+        <div class="modal-content">
+          <form>
+
+            <div class="card">
+              <h3>Basis Informatie</h3>
+              <div class="grid-2">
+                <div>
+                  <label>Voornaam *</label>
+                  <input type="text" name="voornaam" required>
+                </div>
+
+                <div>
+                  <label>Achternaam *</label>
+                  <input type="text" name="achternaa" required>
+                </div>
+
+                <div>
+                  <label>Adres *</label>
+                  <input type="text" name="adres" required>
+                </div>
+
+                <div>
+                  <label>Postcode *</label>
+                  <input type="text" name="postcode" required>
+                </div>
+
+                <div>
+                  <label>Woonplaats *</label>
+                  <input type="text" name="woonplaats" required>
+                </div>
+
+                <div>
+                  <label>Telefoonnummer *</label>
+                  <input type="tel" name="Telefoonnummer" required>
+                </div>
+
+                <div class="full">
+                  <label>E-mailadres *</label>
+                  <input type="email" name="email" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Gezinssamenstelling</h3>
+              <div class="grid-3">
+                <div>
+                  <label>Aantal Volwassenen</label>
+                  <input type="number" min="0">
+                </div>
+
+                <div>
+                  <label>Aantal Kinderen</label>
+                  <input type="number" min="0">
+                </div>
+
+                <div>
+                  <label>Aantal Baby's</label>
+                  <input type="number" min="0">
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Wensen en Beperkingen</h3>
+              <label>Dieetwensen</label>
+              <!-- <div class="checkbox-group">
+                <label><input type="checkbox"> Geen varkensvlees</label>
+                <label><input type="checkbox"> Vegetarisch</label>
+                <label><input type="checkbox"> Veganistisch</label>
+              </div> -->
+
+              <div class="checkbox-group">
+                <?php foreach ($opgeslagenWensen as $wens): ?>
+                  <label>
+                    <input type="checkbox" name="wensen[]" value="<?= $wens['idKlantenwensen'] ?>">
+                    <?= htmlspecialchars($wens['klantenwens']) ?>
+                  </label>
+                <?php endforeach; ?>
+              </div>
+
+              <label>Allergieën</label>
+
+              <div class="button-group">
+                <button type="button">+ Gluten</button>
+                <button type="button">+ Pinda's</button>
+                <button type="button">+ Schaaldieren</button>
+                <button type="button">+ Andere...</button>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button type="button" class="btn-muted">Annuleren</button>
+              <button type="submit" class="btn-primary">Toevoegen</button>
+            </div>
+
+          </form>
+        </div>
+
+      </div>
     </div>
-
-    <div class="modal-content">
-      <form id="klantForm">
-        <div class="card">
-          <div class="grid-2">
-            <div>
-              <label>Voornaam *</label>
-              <input name="voornaam" placeholder="Voornaam" required>
-            </div>
-            <div>
-              <label>Achternaam *</label>
-              <input name="achternaam" placeholder="Achternaam" required>
-            </div>
-            <div>
-              <label>Adres *</label>
-              <input name="adres" placeholder="Adres" required>
-            </div>
-            <div>
-              <label>Postcode *</label>
-              <input name="postcode" placeholder="Postcode" required>
-            </div>
-            <div>
-              <label>Woonplaats *</label>
-              <input name="woonplaats" placeholder="Woonplaats" required>
-            </div>
-            <div>
-              <label>Telefoonnummer *</label>
-              <input name="telefoonnummer" placeholder="Telefoon" required>
-            </div>
-            <div>
-              <label>E-mailadres *</label>
-              <input name="email" placeholder="Email" required>
-            </div>
-
-          </div>
-          
-        </div>
-        <div class="card">
-          <h3>Gezinssamenstelling</h3>
-          <div class="grid-3">
-            <div>
-              <label>Aantal Volwassenen</label>
-              <input type="number" name="volwassenen">
-            </div>
-            <div>
-              <label>Aantal Kinderen</label>
-              <input type="number" name="kinderen">
-            </div>
-            <div>
-              <label>Aantal Baby's</label>
-              <input type="number" name="babys">
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <h3>Dieetwensen</h3>
-          <div class="wensenContainer">
-            <?php foreach ($opgeslagenWensen as $wens): ?>
-              <label>
-                <input type="checkbox" name="wensen[]" value="<?= $wens['idKlantenwensen'] ?>">
-                <?= htmlspecialchars($wens['klantenwens']) ?>
-              </label>
-            <?php endforeach; ?>
-          </div>
-          
-          <h3>Allergieën</h3>
-          <div id="allergieTags"></div>
-          <input type="hidden" name="allergieën" id="allergieënInput">
-
-          <div class="button-group">
-            <button type="button" data-allergie="Gluten">+ Gluten</button>
-            <button type="button" data-allergie="Pinda's">+ Pinda's</button>
-            <button type="button" data-allergie="Schaaldieren">+ Schaaldieren</button>
-            <button type="button" id="customBtn">+ Andere...</button>
-          </div>
-
-          <div id="customInput" style="display:none;">
-            <input type="text" id="customAllergie">
-            <button type="button" id="addCustom">Toevoegen</button>
-            <button type="button" id="cancelCustom">cancel</button>
-          </div>
-
-        </div>
-        <div class="actions">
-          <button type="button" class="btn-muted">Annuleren</button>
-          <button type="submit" class="btn-primary">Toevoegen</button>
-        </div>
-
-      </form>
-    </div>
-  </div>
-</div>
 
         
     </main>
