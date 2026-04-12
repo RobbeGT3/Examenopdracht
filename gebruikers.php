@@ -1,14 +1,20 @@
-<!DOCTYPE html>
-<html lang="nl">
-
 <?php
 session_start();
 if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
     die("Page not available");
 }
 $currentPage = 'gebruikers.php';
+require_once  __DIR__. '/common/dbconnection.php';
+
+$stmt1 = $conn->prepare("SELECT * FROM Gebruiker g
+INNER JOIN Gebruikerrollen gr ON g.Gebruikerrollen_idGebruikerrollen = gr.idGebruikerrollen;");
+$stmt1->execute();
+$result1 = $stmt1->get_result();
+$gebruikers = $result1->fetch_all(MYSQLI_ASSOC);
 ?>
 
+<!DOCTYPE html>
+<html lang="nl">
 <head>
     <meta charset="UTF-8">
     <title>Gebruikersbeheer</title>
@@ -79,38 +85,41 @@ $currentPage = 'gebruikers.php';
                     </thead>
 
                     <tbody>
-                        <tr>
-                            <td>directeur</td>
-                            <td><span class="badge purple">Directeur</span></td>
-                            <td class="status-cell"><span class="dot green"></span>Actief</td>
-                            <td class="actions">
-                                <button class="edit"></button>
-                                <button class="password"></button>
-                                <button class="delete"></button>
-                            </td>
-                        </tr>
+                        <?php foreach ($gebruikers as $gebruiker): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($gebruiker['username']) ?></td>
 
-                        <tr>
-                            <td>magazijn</td>
-                            <td><span class="badge blue">Magazijnmedewerker</span></td>
-                            <td class="status-cell"><span class="dot green"></span>Actief</td>
-                            <td class="actions">
-                                <button class="edit"></button>
-                                <button class="password"></button>
-                                <button class="delete"></button>
-                            </td>
-                        </tr>
+                                <td>
+                                    <?php
+                                    $rol = $gebruiker['rolnaam'];
 
-                        <tr>
-                            <td>vrijwilliger</td>
-                            <td><span class="badge green">Vrijwilliger</span></td>
-                            <td class="status-cell"><span class="dot green"></span>Actief</td>
-                            <td class="actions">
-                                <button class="edit"></button>
-                                <button class="password"></button>
-                                <button class="delete"></button>
-                            </td>
-                        </tr>
+                                    $class = '';
+                                    if ($rol === 'Directie') $class = 'purple';
+                                    elseif ($rol === 'Magazijnmedewerker') $class = 'blue';
+                                    elseif ($rol === 'Vrijwilliger') $class = 'green';
+                                    ?>
+
+                                    <span class="badge <?= $class ?>">
+                                        <?= htmlspecialchars($rol) ?>
+                                    </span>
+                                </td>
+
+                                <td class="status-cell">
+                                    <?php
+                                    $status = $gebruiker['status'];
+
+                                    $dotClass = ($status === 'Actief') ? 'green' : 'red';
+                                    ?>
+                                    <span class="dot <?= $dotClass ?>"></span><?= ucfirst(htmlspecialchars($status)) ?>
+                                </td>
+
+                                <td class="actions">
+                                    <button class="edit"></button>
+                                    <button class="password"></button>
+                                    <button class="delete"></button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </section>

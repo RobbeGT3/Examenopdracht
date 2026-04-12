@@ -25,6 +25,7 @@ if ($gebruiker && password_verify($saltedWachtwoord, $gebruiker['password'])) {
     header('location: ../dashboard.php');
     $_SESSION['is_logged_in'] = true;
     $_SESSION['userrole'] = $gebruiker['rolnaam'];
+    $_SESSION['username'] = $gebruiker['username'];
     exit;
 } else {
     header('location: ../index.php?error=Verkeerde Inloggegevens');
