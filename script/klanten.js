@@ -81,6 +81,29 @@ document.getElementById('addCustom').onclick = () => {
   }
 };
 
+document.querySelectorAll('.btn-edit').forEach(btn => {
+  btn.onclick = () => {
+    const klant = JSON.parse(btn.dataset.klant);
+
+    state.isOpen = true;
+
+    document.querySelector('[name="voornaam"]').value = klant.voornaam || '';
+    document.querySelector('[name="achternaam"]').value = klant.achternaam || '';
+    document.querySelector('[name="adres"]').value = klant.adres || '';
+    document.querySelector('[name="postcode"]').value = klant.postcode || '';
+    document.querySelector('[name="woonplaats"]').value = klant.woonplaats || '';
+    document.querySelector('[name="telefoonnummer"]').value = klant.telefoonnummer || '';
+    document.querySelector('[name="email"]').value = klant['e-mailadres'] || '';
+    document.querySelector('[name="volwassenen"]').value = klant['aantal_volwassen'] || '';
+    document.querySelector('[name="kinderen"]').value = klant['aantal_kinderen'] || '';
+    document.querySelector('[name="babys"]').value = klant["aantal_baby's"] || '';
+
+    document.getElementById('klantForm').dataset.id = klant.idKlanten;
+
+    render();
+  };
+});
+
 document.getElementById('klantForm').addEventListener('submit', e => {
   e.preventDefault();
 

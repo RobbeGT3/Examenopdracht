@@ -18,6 +18,11 @@ $stmt1 = $conn->prepare("SELECT
     k.woonplaats,
     k.telefoonnummer,
     k.`e-mailadres`,
+    k.aantal_volwassen,
+    k.aantal_kinderen,
+    k.`aantal_baby's`,
+    k.`status`,
+    GROUP_CONCAT(DISTINCT kw.idKlantenwensen) AS wensen_ids,
     GROUP_CONCAT(DISTINCT kw.klantenwens) AS wensen,
     GROUP_CONCAT(DISTINCT ka.omschrijving) AS allergenen
 FROM Klanten k
@@ -123,7 +128,7 @@ $opgeslagenWensen = $result2->fetch_all(MYSQLI_ASSOC);
           <?php endif; ?>
 
           <div class="klantenCard-actions">
-            <button class="btn-edit" data-klant='<?= json_encode($klant) ?>'>Bewerken</button>
+            <button class="btn-edit" data-klant='<?= htmlspecialchars(json_encode($klant), ENT_QUOTES, 'UTF-8')?>'>Bewerken</button>
             <button class="btn-delete" data-id="<?= $klant['idKlanten'] ?>">🗑</button>
           </div>
         </div>
