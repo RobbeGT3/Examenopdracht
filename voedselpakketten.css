@@ -1,0 +1,150 @@
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.new-package-btn {
+  background: #2e7d32;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.new-package-btn:hover {
+  background: #256428;
+}
+
+.message-box {
+  background: #eef6ff;
+  color: #17345e;
+  padding: 14px 18px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.package-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.package-card h2 {
+  font-size: 22px;
+  color: #17345e;
+  margin-bottom: 10px;
+}
+
+.package-card p {
+  margin-bottom: 8px;
+  color: #4b5563;
+}
+
+.package-card form {
+  margin-top: 16px;
+}
+
+.btn-give {
+  width: 100%;
+  background: #2e7d32;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-give:hover {
+  background: #256428;
+}
+
+.btn-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.empty-state {
+  background: #fff;
+  border-radius: 16px;
+  padding: 50px 20px;
+  text-align: center;
+  color: #6b7280;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 9999;
+}
+
+.modal-backdrop.active {
+  display: flex;
+}
+
+.modal-box {
+  width: 100%;
+  max-width: 600px;
+  background: white;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.18);
+}
+
+.modal-box h2 {
+  margin-bottom: 20px;
+  color: #17345e;
+}
+
+.modal-box label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.modal-box select {
+  width: 100%;
+  border: 1px solid #d6d6d6;
+  border-radius: 12px;
+  padding: 13px 16px;
+  font-size: 15px;
+  background: white;
+}
+
+.modal-box button[type="button"] {
+  margin-left: 10px;
+  background: #e5e7eb;
+  color: #374151;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
