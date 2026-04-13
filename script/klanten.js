@@ -1,7 +1,5 @@
 const state = {
   isOpen: false,
-  // mode: 'add',
-  // editId: null,
   allergieën: []
 };
 
@@ -36,44 +34,6 @@ document.querySelectorAll('[data-allergie]').forEach(btn => {
   };
 });
 
-// document.querySelectorAll('.btn-edit').forEach(btn => {
-//   btn.onclick = () => {
-
-//     const klant = JSON.parse(btn.dataset.klant);
-
-//     state.mode = 'edit';
-//     state.editId = klant.idKlanten;
-//     state.isOpen = true;
-
-//     fillForm(klant);
-//   };
-// });
-
-// function fillForm(klant) {
-//   const form = document.getElementById('klantForm');
-
-//   form.voornaam.value = klant.voornaam;
-//   form.achternaam.value = klant.achternaam;
-//   form.adres.value = klant.adres;
-//   form.postcode.value = klant.postcode;
-//   form.woonplaats.value = klant.woonplaats;
-//   form.telefoonnummer.value = klant.telefoonnummer;
-//   form.email.value = klant['e-mailadres'];
-
-//   // wensen
-//   const wensen = klant.wensen ? klant.wensen.split(',') : [];
-
-//   document.querySelectorAll('input[name="wensen[]"]').forEach(cb => {
-//     cb.checked = wensen.includes(cb.nextSibling.textContent.trim());
-//   });
-
-//   // allergieën
-//   const allergieën = klant.allergenen ? klant.allergenen.split(',') : [];
-//   state.allergieën = allergieën;
-
-//   render();
-// }
-
 function renderAllergieën() {
   const container = document.getElementById('allergieTags');
   const hidden = document.getElementById('allergieënInput');
@@ -82,7 +42,7 @@ function renderAllergieën() {
 
   state.allergieën.forEach((a, i) => {
     const el = document.createElement('span');
-    el.className = 'tag';
+    el.className = 'tag tag-red';
     el.innerHTML = `${a} <button data-i="${i}">x</button>`;
     container.appendChild(el);
   });
@@ -125,25 +85,6 @@ document.getElementById('klantForm').addEventListener('submit', e => {
   e.preventDefault();
 
   const formData = new FormData(e.target);
-
-  let url = 'actions/addKlant.php';
-  if (state.mode === 'edit') {
-    url = 'actions/updateKlant.php';
-    formData.append('id', state.editId);
-  }
-  // fetch(url, {
-  //   method: 'POST',
-  //   body: formData
-  // })
-  // .then(res => {
-  //   res.text()})
-  // .then(() => {
-  //   state.isOpen = false;
-  //   reset();
-  //   render();
-  //   // location.reload();
-  // });
-
 
   fetch('actions/addKlant.php', {
     method: 'POST',
