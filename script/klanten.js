@@ -1,7 +1,7 @@
 const state = {
   isOpen: false,
-  mode: 'add',
-  editId: null,
+  // mode: 'add',
+  // editId: null,
   allergieën: []
 };
 
@@ -36,43 +36,43 @@ document.querySelectorAll('[data-allergie]').forEach(btn => {
   };
 });
 
-document.querySelectorAll('.btn-edit').forEach(btn => {
-  btn.onclick = () => {
+// document.querySelectorAll('.btn-edit').forEach(btn => {
+//   btn.onclick = () => {
 
-    const klant = JSON.parse(btn.dataset.klant);
+//     const klant = JSON.parse(btn.dataset.klant);
 
-    state.mode = 'edit';
-    state.editId = klant.idKlanten;
-    state.isOpen = true;
+//     state.mode = 'edit';
+//     state.editId = klant.idKlanten;
+//     state.isOpen = true;
 
-    fillForm(klant);
-  };
-});
+//     fillForm(klant);
+//   };
+// });
 
-function fillForm(klant) {
-  const form = document.getElementById('klantForm');
+// function fillForm(klant) {
+//   const form = document.getElementById('klantForm');
 
-  form.voornaam.value = klant.voornaam;
-  form.achternaam.value = klant.achternaam;
-  form.adres.value = klant.adres;
-  form.postcode.value = klant.postcode;
-  form.woonplaats.value = klant.woonplaats;
-  form.telefoonnummer.value = klant.telefoonnummer;
-  form.email.value = klant['e-mailadres'];
+//   form.voornaam.value = klant.voornaam;
+//   form.achternaam.value = klant.achternaam;
+//   form.adres.value = klant.adres;
+//   form.postcode.value = klant.postcode;
+//   form.woonplaats.value = klant.woonplaats;
+//   form.telefoonnummer.value = klant.telefoonnummer;
+//   form.email.value = klant['e-mailadres'];
 
-  // wensen
-  const wensen = klant.wensen ? klant.wensen.split(',') : [];
+//   // wensen
+//   const wensen = klant.wensen ? klant.wensen.split(',') : [];
 
-  document.querySelectorAll('input[name="wensen[]"]').forEach(cb => {
-    cb.checked = wensen.includes(cb.nextSibling.textContent.trim());
-  });
+//   document.querySelectorAll('input[name="wensen[]"]').forEach(cb => {
+//     cb.checked = wensen.includes(cb.nextSibling.textContent.trim());
+//   });
 
-  // allergieën
-  const allergieën = klant.allergenen ? klant.allergenen.split(',') : [];
-  state.allergieën = allergieën;
+//   // allergieën
+//   const allergieën = klant.allergenen ? klant.allergenen.split(',') : [];
+//   state.allergieën = allergieën;
 
-  render();
-}
+//   render();
+// }
 
 function renderAllergieën() {
   const container = document.getElementById('allergieTags');
@@ -131,7 +131,21 @@ document.getElementById('klantForm').addEventListener('submit', e => {
     url = 'actions/updateKlant.php';
     formData.append('id', state.editId);
   }
-  fetch(url, {
+  // fetch(url, {
+  //   method: 'POST',
+  //   body: formData
+  // })
+  // .then(res => {
+  //   res.text()})
+  // .then(() => {
+  //   state.isOpen = false;
+  //   reset();
+  //   render();
+  //   // location.reload();
+  // });
+
+
+  fetch('actions/addKlant.php', {
     method: 'POST',
     body: formData
   })
@@ -141,7 +155,7 @@ document.getElementById('klantForm').addEventListener('submit', e => {
     state.isOpen = false;
     reset();
     render();
-    // location.reload();
+    location.reload();
   });
 });
 
