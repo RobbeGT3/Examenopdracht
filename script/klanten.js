@@ -1,6 +1,9 @@
 const state = {
   isOpen: false,
-  allergieën: []
+  allergieën: [],
+  origineleAllergieën: [],
+  wensen:[],
+  origineleWensen:[]
 };
 
 const modal = document.querySelector('.modal-overlay');
@@ -86,6 +89,8 @@ document.querySelectorAll('.btn-edit').forEach(btn => {
     const klant = JSON.parse(btn.dataset.klant);
 
     state.isOpen = true;
+    state.allergieën = klant.allergenen ? klant.allergenen.split(',') : [];
+    state.origineleAllergieën = [...state.allergieën];
 
     document.querySelector('[name="voornaam"]').value = klant.voornaam || '';
     document.querySelector('[name="achternaam"]').value = klant.achternaam || '';
@@ -98,9 +103,36 @@ document.querySelectorAll('.btn-edit').forEach(btn => {
     document.querySelector('[name="kinderen"]').value = klant['aantal_kinderen'] || '';
     document.querySelector('[name="babys"]').value = klant["aantal_baby's"] || '';
 
+
+    const wensenIds = klant.wensen_ids ? klant.wensen_ids.split(',') : [];
+
+    state.wensen = [...wensenIds];
+    state.origineleWensen = [...wensenIds];
+
+    document.querySelectorAll('[name="wensen[]"]').forEach(cb => {
+      cb.checked = wensenIds.includes(cb.value);
+    });
+
+    state.allergieën = klant.allergenen
+      ? klant.allergenen.split(',').map(a => a.trim())
+      : [];
+
+
     document.getElementById('klantForm').dataset.id = klant.idKlanten;
 
     render();
+  };
+});
+
+document.querySelectorAll('[name="wensen[]"]').forEach(cb => {
+  cb.onchange = () => {
+    if (cb.checked) {
+      if (!state.wensen.includes(cb.value)) {
+        state.wensen.push(cb.value);
+      }
+    } else {
+      state.wensen = state.wensen.filter(w => w !== cb.value);
+    }
   };
 });
 
@@ -109,12 +141,28 @@ document.getElementById('klantForm').addEventListener('submit', e => {
 
   const formData = new FormData(e.target);
 
-  fetch('actions/addKlant.php', {
-    method: 'POST',
-    body: formData
-  })
-  .then(res => {
-    res.text()})
+  const id = e.target.dataset.id;
+  let url;
+  if (id) {
+    formData.append('id', id);
+    const verwijderdAllergenen = state.origineleAllergieën.filter(a => !state.allergieën.includes(a));
+    const toegevoegdAllergenen = state.allergieën.filter(a => !state.origineleAllergieën.includes(a));
+    const verwijderdeWensen = state.origineleWensen.filter(w => !state.wensen.includes(w));
+    const toegevoegdeWensen = state.wensen.filter(w => !state.origineleWensen.includes(w));
+
+    formData.append('allergieën_toegevoegd', JSON.stringify(toegevoegdAllergenen));
+    formData.append('allergieën_verwijderd', JSON.stringify(verwijderdAllergenen));
+    formData.append('wensen_toegevoegd', JSON.stringify(toegevoegdeWensen));
+    formData.append('wensen_verwijderd', JSON.stringify(verwijderdeWensen));
+    url = 'actions/updateKlant.php';
+  } else {
+    url = 'actions/addKlant.php';
+  }
+  fetch(url, {
+      method: 'POST',
+      body: formData
+    })
+  .then(res => res.text())
   .then(() => {
     state.isOpen = false;
     reset();
@@ -125,7 +173,16 @@ document.getElementById('klantForm').addEventListener('submit', e => {
 
 function reset() {
   state.allergieën = [];
+  state.origineleAllergieën = [];
+  state.wensen = [];
+  state.origineleWensen = [];
   document.getElementById('klantForm').reset();
+
+  document.querySelectorAll('[name="wensen[]"]').forEach(cb => {
+    cb.checked = false;
+  });
+
+  delete document.getElementById('klantForm').dataset.id;
 }
 
 function render() {

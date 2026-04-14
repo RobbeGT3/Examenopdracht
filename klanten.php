@@ -156,27 +156,27 @@ $opgeslagenWensen = $result2->fetch_all(MYSQLI_ASSOC);
             </div>
             <div>
               <label>Achternaam *</label>
-              <input name="achternaam" placeholder="Achternaam" required>
+              <input name="achternaam" placeholder="Achternaam" maxlength="50" required>
             </div>
             <div>
               <label>Adres *</label>
-              <input name="adres" placeholder="Adres" required>
+              <input name="adres" placeholder="Adres" maxlength="100" required>
             </div>
             <div>
               <label>Postcode *</label>
-              <input name="postcode" placeholder="Postcode" required>
+              <input name="postcode" placeholder="Postcode" maxlength="10" required>
             </div>
             <div>
               <label>Woonplaats *</label>
-              <input name="woonplaats" placeholder="Woonplaats" required>
+              <input name="woonplaats" placeholder="Woonplaats" maxlength="50" required>
             </div>
             <div>
               <label>Telefoonnummer *</label>
-              <input name="telefoonnummer" placeholder="Telefoon" required>
+              <input name="telefoonnummer" placeholder="Telefoon" maxlength="20" required>
             </div>
             <div>
               <label>E-mailadres *</label>
-              <input name="email" placeholder="Email" required>
+              <input name="email" placeholder="Email" maxlength="200" required>
             </div>
 
           </div>
@@ -222,7 +222,7 @@ $opgeslagenWensen = $result2->fetch_all(MYSQLI_ASSOC);
           </div>
 
           <div id="customInput" style="display:none;">
-            <input type="text" id="customAllergie">
+            <input type="text" id="customAllergie" maxlength="100">
             <button type="button" id="addCustom">Toevoegen</button>
             <button type="button" id="cancelCustom">cancel</button>
           </div>
