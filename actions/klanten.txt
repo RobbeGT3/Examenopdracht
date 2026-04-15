@@ -1,0 +1,1 @@
+{"ean":"8714923456781","productnaam":"test","categorie_id":"alcohol","new_categorie":null,"aantal":"13"}

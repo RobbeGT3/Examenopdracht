@@ -12,6 +12,11 @@ $stmt1 = $conn->prepare("SELECT p.idProducts, p.`EAN-nummer`, p.productnaam, p.a
 $stmt1->execute();
 $result1 = $stmt1->get_result();
 $voorraad = $result1->fetch_all(MYSQLI_ASSOC);
+
+$stmtCat = $conn->prepare("SELECT c.idCategories, c.product_categorie FROM Categories c;");
+$stmtCat->execute();
+$resultCat = $stmtCat->get_result();
+$categories = $resultCat->fetch_all(MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="nl">
@@ -68,10 +73,10 @@ $voorraad = $result1->fetch_all(MYSQLI_ASSOC);
                             <td><span class="quantity-badge"><?= htmlspecialchars($row['aantal']) ?></span></td>
                             <td>
                                 <div class="actions">
-                                    <button class="btn-edit" onclick="openEditModal(<?= $row['idProducts'] ?>)">
+                                    <button class="btn-edit">
                                         <i class="fas fa-pencil"></i>
                                     </button>
-                                    <button class="btn-delete" onclick="deleteProduct(<?= $row['idProducts'] ?>)">
+                                    <button class="btn-delete">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -109,7 +114,7 @@ $voorraad = $result1->fetch_all(MYSQLI_ASSOC);
                 <div class="form-group">
                     <label for="categorie">Categorie</label>
                     <div id="category-container">
-                        <select id="categorie" name="categorie">
+                        <!-- <select id="categorie" name="categorie">
                             <option value="">Selecteer categorie...</option>
                             <option value="aardappelen">Aardappelen, Groente, Fruit</option>
                             <option value="zuivel">Zuivel</option>
@@ -118,6 +123,18 @@ $voorraad = $result1->fetch_all(MYSQLI_ASSOC);
                             <option value="conserven">Conserven</option>
                             <option value="vlees">Vlees, Vis, Vega</option>
                             <option value="dranken">Dranken</option>
+                            <option value="overig">Overig</option>
+                        </select> -->
+
+                        <select id="categorie" name="categorie">
+                            <option value="">Selecteer categorie...</option>
+
+                            <?php foreach ($categories as $cat): ?>
+                                <option value="<?= $cat['idCategories'] ?>">
+                                    <?= htmlspecialchars($cat['product_categorie']) ?>
+                                </option>
+                            <?php endforeach; ?>
+
                             <option value="overig">Overig</option>
                         </select>
                         

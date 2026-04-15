@@ -134,7 +134,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 categoryText = categorySelect.options[categorySelect.selectedIndex].text;
             }
 
-            // Hier zou je normaal de data naar de server sturen
             console.log('Nieuw product toegevoegd:', {
                 eanNummer,
                 productnaam,
@@ -142,8 +141,49 @@ document.addEventListener('DOMContentLoaded', function () {
                 aantal
             });
 
-            // Voor demo doeleinden, voeg een nieuwe rij toe aan de tabel
-            addNewProductToTable(eanNummer, productnaam, categoryText, aantal);
+            const categorieSelect = document.getElementById('categorie');
+            const isNewCategory = categorieSelect.value === 'overig';
+            const newCategory = document.getElementById('new-category').value;
+
+            // const categorieSelect = document.getElementById('categorie');
+            // // const newCategoryContainer = document.getElementById('new-category-container');
+            // const isNewCategory = newCategoryContainer.style.display === 'block';
+            // const newCategory = document.getElementById('new-category').value.trim();
+
+            fetch('actions/productToevoegen.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                // body: JSON.stringify({
+                //     ean: eanNummer,
+                //     productnaam: productnaam,
+                //     categorie_id: isNewCategory ? null : categorieSelect.value,
+                //     new_categorie: isNewCategory ? newCategory : null,
+                //     aantal: aantal
+                // })
+
+                body: JSON.stringify({
+                    ean: eanNummer,
+                    productnaam: productnaam,
+                    categorie_id: isNewCategory ? null : categorieSelect.value,
+                    new_categorie: isNewCategory ? newCategory : null,
+                    aantal: aantal
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // location.reload();
+                } else {
+                    alert('Fout bij opslaan');
+                }
+
+            })
+            .then(()=>{
+                //location.reload();
+            });
+            // addNewProductToTable(eanNummer, productnaam, categoryText, aantal);
 
             // Close modal and reset form
             closeModal();
@@ -375,6 +415,7 @@ function addNewCategory() {
     const newCategoryInput = document.getElementById('new-category');
     const categorySelect = document.getElementById('categorie');
     const newCategoryContainer = document.getElementById('new-category-container');
+    const isNewCategory = newCategoryContainer.style.display === 'block';
 
     const newCategoryValue = newCategoryInput.value.trim();
 
