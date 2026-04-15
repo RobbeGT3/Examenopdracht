@@ -1,160 +1,158 @@
 <?php
 session_start();
-if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
-    die("Page not available");
-}
+// if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
+//     die("Page not available");
+// }
 
-require_once __DIR__ . '/common/dbconnection.php';
+$currentPage = basename($_SERVER['PHP_SELF']);
+require_once  __DIR__. '/common/dbconnection.php';
 
-$message = "";
-
-/* KLANTEN */
-$klanten = [];
-$q = $conn->query("SELECT idKlanten, naam, klantnummer, volwassenen, kinderen, babys, dieetwensen FROM Klanten WHERE status='Goedgekeurd'");
-if ($q) {
-    $klanten = $q->fetch_all(MYSQLI_ASSOC);
-}
-
-/* PRODUCTEN */
-$producten = [];
-$q = $conn->query("SELECT idProduct, naam, categorie, aantal FROM Products WHERE aantal > 0");
-if ($q) {
-    $producten = $q->fetch_all(MYSQLI_ASSOC);
-}
-
-/* PAKKET OPSLAAN */
-if (isset($_POST['create_package'])) {
-    $idKlant = isset($_POST['idKlant']) ? (int)$_POST['idKlant'] : 0;
-
-    if ($idKlant > 0) {
-        $conn->query("
-            INSERT INTO Voedselpakketten (idKlant, samenstellings_datum, status)
-            VALUES ($idKlant, NOW(), 'In afwachting')
-        ");
-        header("Location: voedselpakketten.php?success=1");
-        exit;
-    } else {
-        $message = "Selecteer eerst een klant.";
-    }
-}
-
-/* UITGEVEN */
-if (isset($_POST['give_package'])) {
-    $id = isset($_POST['idPakket']) ? (int)$_POST['idPakket'] : 0;
-
-    if ($id > 0) {
-        $conn->query("
-            UPDATE Voedselpakketten
-            SET status='Uitgegeven', uitgegeven_datum=NOW()
-            WHERE idVoedselpakketten=$id
-        ");
-        header("Location: voedselpakketten.php?issued=1");
-        exit;
-    }
-}
-
-/* PAKKETTEN */
-$pakketten = [];
-$q = $conn->query("
-    SELECT v.*, k.naam, k.klantnummer
-    FROM Voedselpakketten v
-    JOIN Klanten k ON v.idKlant = k.idKlanten
-    ORDER BY v.idVoedselpakketten DESC
-");
-if ($q) {
-    $pakketten = $q->fetch_all(MYSQLI_ASSOC);
-}
-
-if (isset($_GET['success'])) {
-    $message = "Pakket aangemaakt";
-}
-
-if (isset($_GET['issued'])) {
-    $message = "Pakket uitgegeven";
-}
 ?>
 
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8">
-  <title>Voedselpakketten</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="voedselpakketten.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voedselpakketten</title>
+    <link rel="stylesheet" href="styles/styles.css">
+    <link rel="stylesheet" href="voedselpakketten.css">
 </head>
 <body>
 
-<?php include 'sidebar.php'; ?>
+<div class="app">
+    <?php include 'sidebar.php' ?>
 
-<main class="main">
-
-  <div class="page-header">
-    <h1 class="page-title">Voedselpakketten</h1>
-    <button type="button" class="new-package-btn" onclick="openModal()">+ Nieuw pakket</button>
-  </div>
-
-  <?php if ($message): ?>
-    <div class="message-box"><?php echo htmlspecialchars($message); ?></div>
-  <?php endif; ?>
-
-  <?php if ($pakketten): ?>
-    <div class="packages-grid">
-      <?php foreach ($pakketten as $p): ?>
-        <div class="package-card">
-          <h2>Pakket #<?php echo (int)$p['idVoedselpakketten']; ?></h2>
-          <p><?php echo htmlspecialchars($p['naam']); ?></p>
-          <p><?php echo htmlspecialchars($p['klantnummer']); ?></p>
-
-          <form method="POST">
-            <input type="hidden" name="idPakket" value="<?php echo (int)$p['idVoedselpakketten']; ?>">
-
-            <?php if ($p['status'] != 'Uitgegeven'): ?>
-              <button type="submit" name="give_package" class="btn-give">Uitgeven</button>
-            <?php else: ?>
-              <button type="button" class="btn-give btn-disabled" disabled>Uitgegeven</button>
-            <?php endif; ?>
-          </form>
+    <main class="main">
+        <div class="voedselHeader">
+            <h1 class="voedselPage-title">Voedselpakketten</h1>
+            <button id="openModalBtn" class="btn-add-package">+ Nieuw Pakket Samenstellen</button>
         </div>
-      <?php endforeach; ?>
-    </div>
-  <?php else: ?>
-    <div class="empty-state">Nog geen pakketten</div>
-  <?php endif; ?>
 
-</main>
+        <div id="emptyState" class="empty-state-card">
+            Nog geen pakketten samengesteld
+        </div>
 
-<div id="modal" class="modal-backdrop">
-  <div class="modal-box">
-    <h2>Nieuw pakket</h2>
-
-    <form method="POST">
-      <label for="idKlant">Klant</label>
-      <select name="idKlant" id="idKlant" required>
-        <option value="">-- kies --</option>
-        <?php foreach ($klanten as $k): ?>
-          <option value="<?php echo (int)$k['idKlanten']; ?>">
-            <?php echo htmlspecialchars($k['naam']) . ' - ' . htmlspecialchars($k['klantnummer']); ?>
-          </option>
-        <?php endforeach; ?>
-      </select>
-
-      <br><br>
-
-      <button type="submit" name="create_package" class="new-package-btn">Opslaan</button>
-      <button type="button" onclick="closeModal()">Sluiten</button>
-    </form>
-  </div>
+        <div id="pakketList" class="pakketCard-container"></div>
+    </main>
 </div>
 
-<script>
-function openModal() {
-  document.getElementById('modal').classList.add('active');
-}
+<div id="modalOverlay" class="modal-overlay hidden">
+    <div class="modal-package">
+        <div class="modal-header">
+            <h2>Pakket samenstellen</h2>
+            <button id="closeModalBtn" class="close-btn" type="button">✕</button>
+        </div>
 
-function closeModal() {
-  document.getElementById('modal').classList.remove('active');
-}
-</script>
+        <div class="modal-content">
+            <div class="package-section">
+                <h3>Stap 1: Selecteer klant</h3>
 
+                <div class="searchable-dropdown" id="familyDropdown">
+                    <label for="familySearch">Voor wie is dit pakket?</label>
+
+                    <div class="dropdown-control" id="dropdownControl">
+                        <input
+                            type="text"
+                            id="familySearch"
+                            placeholder="-- Selecteer een klant --"
+                            autocomplete="off"
+                        >
+                        <span class="dropdown-arrow">⌄</span>
+                    </div>
+                    <!-- dropdown met zoekfunctie met klanten data. bestaat uit string family + achternaam - Postcode -->
+                    <div class="dropdown-list hidden" id="familyOptions">
+                        <div class="dropdown-item family-item" data-value="Familie Bakker - 1234AB">Familie Bakker - 1234AB</div>
+                        <div class="dropdown-item family-item" data-value="Familie Visser - 1234CD">Familie Visser - 1234CD</div>
+                        <div class="dropdown-item family-item" data-value="Familie Yilmaz - 5678EF">Familie Yilmaz - 5678EF</div>
+                    </div>
+
+                    <!-- <div class="dropdown-list hidden" id="familyOptions"></div> -->
+                </div>
+            </div>
+
+            <div id="clientInfoBox" class="package-section hidden">
+                <h3>Klant informatie</h3>
+                informatie van de gekozen klant
+                <div class="info-grid">
+                    <div class="info-card">
+                        <p class="small-title">Gezinssamenstelling</p>
+                        <div class="family-stats">
+                            <div>
+                                <strong id="adultCount">0</strong>
+                                <span>Volwassenen</span>
+                            </div>
+                            <div>
+                                <strong id="childCount">0</strong>
+                                <span>Kinderen</span>
+                            </div>
+                            <div>
+                                <strong id="babyCount">0</strong>
+                                <span>Baby's</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <p class="small-title">Dieetwensen</p>
+                        <p id="dietText">Geen beperkingen</p>
+                    </div>
+                </div>
+            </div>
+            <div id="allergyBox" class="package-section hidden">
+                <h3>⚠️ Allergieën</h3>
+                <p id="allergyText"></p>
+            </div>
+
+            <div id="productStepBox" class="package-section hidden">
+                <h3>Stap 2: Voeg producten toe</h3>
+                <div id="allergyWarning" class="warning hidden"></div>
+                <div class="searchable-dropdown" id="productDropdown">
+                    <label for="productSearch">Selecteer product</label>
+
+                    <div class="dropdown-control" id="productDropdownControl">
+                        <input
+                            type="text"
+                            id="productSearch"
+                            placeholder="-- Kies een product --"
+                            autocomplete="off"
+                        >
+                        <span class="dropdown-arrow">⌄</span>
+                    </div>
+
+                    <div class="dropdown-list hidden" id="productOptions">
+                        <!-- producten opties -->
+                        <div class="dropdown-item product-item-option"
+                             data-name="Aardappelen (1kg)"
+                             data-category="Aardappelen, Groente, Fruit">
+                            Aardappelen (1kg) - Aardappelen, Groente, Fruit (Voorraad: 100)
+                    </div>
+                </div>
+
+                <label class="amount-label">Aantal</label>
+
+                <div class="amount-row">
+                    <button type="button" id="minusBtn" class="qty-btn">-</button>
+                    <input type="text" id="qtyInput" value="1" readonly>
+                    <button type="button" id="plusBtn" class="qty-btn">+</button>
+                    <button type="button" id="addProductBtn" class="add-btn">Product toevoegen</button>
+                </div>
+            </div>
+
+            <div id="selectedProductsBox" class="package-section hidden">
+                <h3>Producten in pakket (<span id="productCount">0</span>)</h3>
+                <div id="selectedProductsList"></div>
+
+                <div class="bottom-actions">
+                    <button type="button" id="createPackageBtn" class="create-btn">✓ Pakket aanmaken</button>
+                    <button type="button" id="cancelBtn" class="cancel-btn">Annuleren</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="voedselpakketten.js"></script>
+<!-- <script src="test2.js"></script> -->
 </body>
 </html>
