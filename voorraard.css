@@ -1,4 +1,4 @@
-* {
+ * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -129,7 +129,7 @@ body {
 .logout a i {
     margin-right: 15px;
     font-size: 16px;
-}
+} 
 
 /* Hoofd Inhoud */
 .main-content {

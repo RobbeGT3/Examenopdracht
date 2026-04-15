@@ -79,6 +79,33 @@ function openEditModal(rowIndex) {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function () {
+     // Voeg click events toe aan bewerk knoppen
+    function addEditButtonListeners() {
+        const editButtons = document.querySelectorAll('.btn-edit');
+        editButtons.forEach((button, index) => {
+            button.addEventListener('click', function () {
+                openEditModal(index);
+            });
+        });
+    }
+
+    // Voeg click events toe aan verwijder knoppen
+    function addDeleteButtonListeners() {
+        const deleteButtons = document.querySelectorAll('.btn-delete');
+
+        deleteButtons.forEach(button => {
+        if (button.disabled) return;
+
+        button.addEventListener('click', function () {
+            const productId = this.dataset.id;
+
+            const row = this.closest('tr');
+            const productnaam = row.children[1].textContent.trim();
+
+            deleteProduct(productId, productnaam);
+        });
+    });
+    }
     // Voeg click event toe aan "Nieuw Product" knop
     const newProductBtn = document.querySelector('.btn-new-product');
     if (newProductBtn) {
@@ -103,92 +130,58 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Behandel formulier verzending
     const modalForm = document.querySelector('.modal-form');
-    if (modalForm) {
-        modalForm.addEventListener('submit', function (e) {
-            e.preventDefault();
+        if (modalForm) {
+            modalForm.addEventListener('submit', function (e) {
+                e.preventDefault();
 
-            // Get form values
-            const eanNummer = document.getElementById('ean-nummer').value;
-            const productnaam = document.getElementById('productnaam').value;
-            const categorie = document.getElementById('categorie').value;
-            const aantal = document.getElementById('aantal').value;
+                const eanNummer = document.getElementById('ean-nummer').value;
+                const productnaam = document.getElementById('productnaam').value;
+                const categorieSelect = document.getElementById('categorie');
+                const aantal = document.getElementById('aantal').value;
 
-            // Validate form - check if a new category is being entered
-            const newCategoryContainer = document.getElementById('new-category-container');
-            if (newCategoryContainer.style.display === 'block') {
-                alert('Voer eerst een nieuwe categorie in of klik op Annuleren.');
-                document.getElementById('new-category').focus();
-                return;
-            }
+                const isNewCategory = document.getElementById('is-new-category').value === "1";
+                const newCategory = document.getElementById('new-category').value.trim();
 
-            // Validate form
-            if (!eanNummer || !productnaam || !categorie || !aantal) {
-                alert('Vul alle velden in a.u.b.');
-                return;
-            }
-
-            // Get category display text
-            let categoryText = categorie;
-            if (categorie !== 'overig') {
-                const categorySelect = document.getElementById('categorie');
-                categoryText = categorySelect.options[categorySelect.selectedIndex].text;
-            }
-
-            console.log('Nieuw product toegevoegd:', {
-                eanNummer,
-                productnaam,
-                categorie: categoryText,
-                aantal
-            });
-
-            const categorieSelect = document.getElementById('categorie');
-            const isNewCategory = categorieSelect.value === 'overig';
-            const newCategory = document.getElementById('new-category').value;
-
-            // const categorieSelect = document.getElementById('categorie');
-            // // const newCategoryContainer = document.getElementById('new-category-container');
-            // const isNewCategory = newCategoryContainer.style.display === 'block';
-            // const newCategory = document.getElementById('new-category').value.trim();
-
-            fetch('actions/productToevoegen.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                // body: JSON.stringify({
-                //     ean: eanNummer,
-                //     productnaam: productnaam,
-                //     categorie_id: isNewCategory ? null : categorieSelect.value,
-                //     new_categorie: isNewCategory ? newCategory : null,
-                //     aantal: aantal
-                // })
-
-                body: JSON.stringify({
-                    ean: eanNummer,
-                    productnaam: productnaam,
-                    categorie_id: isNewCategory ? null : categorieSelect.value,
-                    new_categorie: isNewCategory ? newCategory : null,
-                    aantal: aantal
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // location.reload();
-                } else {
-                    alert('Fout bij opslaan');
+                // Validatie
+                if (!eanNummer || !productnaam || !aantal) {
+                    alert('Vul alle velden in a.u.b.');
+                    return;
                 }
 
-            })
-            .then(()=>{
-                //location.reload();
-            });
-            // addNewProductToTable(eanNummer, productnaam, categoryText, aantal);
+                if (!isNewCategory && !categorieSelect.value) {
+                    alert('Selecteer een categorie.');
+                    return;
+                }
 
-            // Close modal and reset form
-            closeModal();
-        });
-    }
+                if (isNewCategory && !newCategory) {
+                    alert('Voer een nieuwe categorie in.');
+                    return;
+                }
+
+                if (categorieSelect.value === 'overig') {
+                    alert('Kies een bestaande categorie of voeg een nieuwe toe.');
+                    return;
+                }
+
+                fetch('actions/productToevoegen.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        ean: eanNummer,
+                        productnaam: productnaam,
+                        categorie_id: isNewCategory ? null : categorieSelect.value,
+                        new_categorie: isNewCategory ? newCategory : null,
+                        aantal: aantal
+                    })
+                })
+                // .then(res => res.json())
+                .then(()=>{location.reload(); });
+
+                closeModal();
+            });
+        }
 
     // Voeg change event toe aan bewerk categorie selectie
     const editCategorySelect = document.getElementById('edit-categorie');
@@ -248,25 +241,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Voeg click events toe aan bewerk knoppen
-    function addEditButtonListeners() {
-        const editButtons = document.querySelectorAll('.btn-edit');
-        editButtons.forEach((button, index) => {
-            button.addEventListener('click', function () {
-                openEditModal(index);
-            });
-        });
-    }
-
-    // Voeg click events toe aan verwijder knoppen
-    function addDeleteButtonListeners() {
-        const deleteButtons = document.querySelectorAll('.btn-delete');
-        deleteButtons.forEach((button, index) => {
-            button.addEventListener('click', function () {
-                deleteProduct(index);
-            });
-        });
-    }
+   
 
     // Initiële aanroep om listeners toe te voegen
     addEditButtonListeners();
@@ -295,41 +270,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
-
-// Functie om nieuw product toe te voegen aan tabel (voor demo doeleinden)
-function addNewProductToTable(eanNummer, productnaam, categorie, aantal) {
-    const table = document.querySelector('.inventory-table tbody');
-    if (!table) return;
-
-    // Maak nieuwe rij
-    const newRow = document.createElement('tr');
-    newRow.innerHTML = `
-        <td>
-            <div class="ean-cell">
-                ${eanNummer}
-            </div>
-        </td>
-        <td>${productnaam}</td>
-        <td>${categorie}</td>
-        <td><span class="quantity-badge">${aantal}</span></td>
-        <td>
-            <div class="actions">
-                <button class="btn-edit">
-                    <i class="fas fa-pencil"></i>
-                </button>
-                <button class="btn-delete">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        </td>
-    `;
-
-    // Voeg rij toe aan tabel
-    table.appendChild(newRow);
-
-    // Toon succesbericht (optioneel)
-    showNotification('Product succesvol toegevoegd!');
-}
 
 // Functie om notificatie te tonen (optionele verbetering)
 function showNotification(message) {
@@ -415,64 +355,40 @@ function addNewCategory() {
     const newCategoryInput = document.getElementById('new-category');
     const categorySelect = document.getElementById('categorie');
     const newCategoryContainer = document.getElementById('new-category-container');
-    const isNewCategory = newCategoryContainer.style.display === 'block';
 
     const newCategoryValue = newCategoryInput.value.trim();
 
     if (!newCategoryValue) {
         alert('Voer een categorie in a.u.b.');
-        newCategoryInput.focus();
         return;
     }
 
-    // Add new option to the select dropdown
+    document.getElementById('is-new-category').value = "1";
+
     const newOption = document.createElement('option');
-    newOption.value = newCategoryValue.toLowerCase().replace(/\s+/g, '-');
+    newOption.value = newCategoryValue;
     newOption.textContent = newCategoryValue;
     newOption.selected = true;
 
-    // Insert before the "overig" option
-    const overigOption = categorySelect.querySelector('option[value="overig"]');
-    categorySelect.insertBefore(newOption, overigOption);
+    categorySelect.appendChild(newOption);
 
-    // Show dropdown and hide input
     categorySelect.style.display = 'block';
     newCategoryContainer.style.display = 'none';
-
-    // Clear the input
-    newCategoryInput.value = '';
 }
 
 function cancelNewCategory() {
+    document.getElementById('is-new-category').value = "0";
+
     const categorySelect = document.getElementById('categorie');
     const newCategoryContainer = document.getElementById('new-category-container');
-    const newCategoryInput = document.getElementById('new-category');
 
-    // Reset to first option
-    categorySelect.selectedIndex = 0;
+    categorySelect.value = "";
 
-    // Show dropdown and hide input
+    // 👉 UI herstellen
     categorySelect.style.display = 'block';
     newCategoryContainer.style.display = 'none';
 
-    // Clear the input
-    newCategoryInput.value = '';
-}
-
-function cancelNewCategory() {
-    const categorySelect = document.getElementById('categorie');
-    const newCategoryContainer = document.getElementById('new-category-container');
-    const newCategoryInput = document.getElementById('new-category');
-
-    // Reset to first option
-    categorySelect.selectedIndex = 0;
-
-    // Show dropdown and hide input
-    categorySelect.style.display = 'block';
-    newCategoryContainer.style.display = 'none';
-
-    // Clear the input
-    newCategoryInput.value = '';
+    document.getElementById('new-category').value = '';
 }
 
 // Bewerk modal categorie functionaliteit
@@ -563,29 +479,19 @@ function updateProductInTable(rowIndex, eanNummer, productnaam, categorie, aanta
 }
 
 // Functie om product te verwijderen uit tabel
-function deleteProduct(rowIndex) {
-    const table = document.querySelector('.inventory-table tbody');
-    const rows = table.getElementsByTagName('tr');
-    const row = rows[rowIndex];
 
-    if (!row) return;
+function deleteProduct(productId, productnaam) {
 
-    // Haal productnaam op voor bevestiging
-    const cells = row.getElementsByTagName('td');
-    const productnaam = cells[1].textContent.trim();
-
-    // Toon bevestigingsdialoog
-    if (confirm(`Weet u zeker dat u "${productnaam}" wilt verwijderen?`)) {
-        // Verwijder de rij
-        row.remove();
-
-        // Toon succesbericht
-        showNotification('Product succesvol verwijderd!');
-
-        // Voeg event listeners opnieuw toe om correcte indexering te behouden
-        setTimeout(() => {
-            addEditButtonListeners();
-            addDeleteButtonListeners();
-        }, 100);
+    if (!confirm(`Weet u zeker dat u "${productnaam}" wilt verwijderen?`)) {
+        return;
     }
+
+    fetch('actions/productDelete.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: productId })
+    })
+    .then(()=>{location.reload(); });
 }

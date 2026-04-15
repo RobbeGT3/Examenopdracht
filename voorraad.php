@@ -8,7 +8,23 @@ if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
 $currentPage = basename($_SERVER['PHP_SELF']);
 require_once  __DIR__. '/common/dbconnection.php';
 
-$stmt1 = $conn->prepare("SELECT p.idProducts, p.`EAN-nummer`, p.productnaam, p.aantal, p.eenheid, p.ontvangst_datum, c.product_categorie FROM Products p INNER JOIN Categories c ON p.Categories_idCategories = c.idCategories;");
+// $stmt1 = $conn->prepare("SELECT p.idProducts, p.`EAN-nummer`, p.productnaam, p.aantal, p.eenheid, p.ontvangst_datum, c.product_categorie FROM Products p INNER JOIN Categories c ON p.Categories_idCategories = c.idCategories;");
+$stmt1 = $conn->prepare("SELECT 
+        p.idProducts, 
+        p.`EAN-nummer`, 
+        p.productnaam, 
+        p.aantal, 
+        c.product_categorie,
+
+        EXISTS (
+            SELECT 1 
+            FROM Voedselpakketten_has_Products vhp 
+            WHERE vhp.Products_idProducts = p.idProducts
+        ) AS in_use
+
+    FROM Products p 
+    INNER JOIN Categories c 
+        ON p.Categories_idCategories = c.idCategories");
 $stmt1->execute();
 $result1 = $stmt1->get_result();
 $voorraad = $result1->fetch_all(MYSQLI_ASSOC);
@@ -76,7 +92,7 @@ $categories = $resultCat->fetch_all(MYSQLI_ASSOC);
                                     <button class="btn-edit">
                                         <i class="fas fa-pencil"></i>
                                     </button>
-                                    <button class="btn-delete">
+                                    <button class="btn-delete" <?= $row['in_use'] ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : '' ?>data-id="<?= $row['idProducts'] ?>">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -114,17 +130,6 @@ $categories = $resultCat->fetch_all(MYSQLI_ASSOC);
                 <div class="form-group">
                     <label for="categorie">Categorie</label>
                     <div id="category-container">
-                        <!-- <select id="categorie" name="categorie">
-                            <option value="">Selecteer categorie...</option>
-                            <option value="aardappelen">Aardappelen, Groente, Fruit</option>
-                            <option value="zuivel">Zuivel</option>
-                            <option value="brood">Brood</option>
-                            <option value="pasta">Pasta, Rijst, Grit</option>
-                            <option value="conserven">Conserven</option>
-                            <option value="vlees">Vlees, Vis, Vega</option>
-                            <option value="dranken">Dranken</option>
-                            <option value="overig">Overig</option>
-                        </select> -->
 
                         <select id="categorie" name="categorie">
                             <option value="">Selecteer categorie...</option>
@@ -144,6 +149,7 @@ $categories = $resultCat->fetch_all(MYSQLI_ASSOC);
                                 <button type="button" class="btn-add-category" onclick="addNewCategory()">Toevoegen</button>
                                 <button type="button" class="btn-cancel-category" onclick="cancelNewCategory()">Annuleren</button>
                             </div>
+                            <input type="hidden" id="is-new-category" value="0">
                         </div>
                     </div>
                 </div>
@@ -193,13 +199,19 @@ $categories = $resultCat->fetch_all(MYSQLI_ASSOC);
                     <div id="edit-category-container">
                         <select id="edit-categorie" name="edit-categorie">
                             <option value="">Selecteer categorie...</option>
-                            <option value="aardappelen">Aardappelen, Groente, Fruit</option>
+                            <!-- <option value="aardappelen">Aardappelen, Groente, Fruit</option>
                             <option value="zuivel">Zuivel</option>
                             <option value="brood">Brood</option>
                             <option value="pasta">Pasta, Rijst, Grit</option>
                             <option value="conserven">Conserven</option>
                             <option value="vlees">Vlees, Vis, Vega</option>
-                            <option value="dranken">Dranken</option>
+                            <option value="dranken">Dranken</option> -->
+                            <?php foreach ($categories as $cat): ?>
+                                <option value="<?= $cat['idCategories'] ?>">
+                                    <?= htmlspecialchars($cat['product_categorie']) ?>
+                                </option>
+                            <?php endforeach; ?>
+
                             <option value="overig">Overig</option>
                         </select>
                         
