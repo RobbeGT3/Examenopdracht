@@ -29,10 +29,12 @@ function closeEditModal() {
     }
 }
 
-function openEditModal(rowIndex) {
+function openEditModal(rowIndex, productId) {
     const table = document.querySelector('.inventory-table tbody');
     const rows = table.getElementsByTagName('tr');
     const row = rows[rowIndex];
+    document.getElementById('edit-row-index').value = rowIndex;
+document.getElementById('edit-product-id').value = productId;
 
     if (!row) return;
 
@@ -83,8 +85,12 @@ document.addEventListener('DOMContentLoaded', function () {
     function addEditButtonListeners() {
         const editButtons = document.querySelectorAll('.btn-edit');
         editButtons.forEach((button, index) => {
+            // button.addEventListener('click', function () {
+            //     openEditModal(index);
+            // });
             button.addEventListener('click', function () {
-                openEditModal(index);
+                const productId = this.dataset.id;
+                openEditModal(index, productId);
             });
         });
     }
@@ -202,42 +208,93 @@ document.addEventListener('DOMContentLoaded', function () {
     // Behandel bewerk formulier verzending
     const editForm = document.getElementById('edit-form');
     if (editForm) {
+        // editForm.addEventListener('submit', function (e) {
+        //     e.preventDefault();
+
+        //     // Get form values
+        //     const rowIndex = document.getElementById('edit-row-index').value;
+        //     const eanNummer = document.getElementById('edit-ean-nummer').value;
+        //     const productnaam = document.getElementById('edit-productnaam').value;
+        //     const categorie = document.getElementById('edit-categorie').value;
+        //     const aantal = document.getElementById('edit-aantal').value;
+
+        //     // Validate form - check if a new category is being entered
+        //     const newCategoryContainer = document.getElementById('edit-new-category-container');
+        //     if (newCategoryContainer.style.display === 'block') {
+        //         alert('Voer eerst een nieuwe categorie in of klik op Annuleren.');
+        //         document.getElementById('edit-new-category').focus();
+        //         return;
+        //     }
+
+        //     // Validate form
+        //     if (!eanNummer || !productnaam || !categorie || !aantal) {
+        //         alert('Vul alle velden in a.u.b.');
+        //         return;
+        //     }
+
+        //     // Get category display text
+        //     let categoryText = categorie;
+        //     if (categorie !== 'overig') {
+        //         const categorySelect = document.getElementById('edit-categorie');
+        //         categoryText = categorySelect.options[categorySelect.selectedIndex].text;
+        //     }
+
+        //     // Werk de tabel rij bij
+        //     updateProductInTable(rowIndex, eanNummer, productnaam, categoryText, aantal);
+
+        //     // Close modal and reset form
+        //     closeEditModal();
+        // });
+
         editForm.addEventListener('submit', function (e) {
             e.preventDefault();
 
-            // Get form values
-            const rowIndex = document.getElementById('edit-row-index').value;
+            const productId = document.getElementById('edit-product-id').value;
             const eanNummer = document.getElementById('edit-ean-nummer').value;
             const productnaam = document.getElementById('edit-productnaam').value;
-            const categorie = document.getElementById('edit-categorie').value;
+            const categorieSelect = document.getElementById('edit-categorie');
             const aantal = document.getElementById('edit-aantal').value;
 
-            // Validate form - check if a new category is being entered
             const newCategoryContainer = document.getElementById('edit-new-category-container');
-            if (newCategoryContainer.style.display === 'block') {
-                alert('Voer eerst een nieuwe categorie in of klik op Annuleren.');
-                document.getElementById('edit-new-category').focus();
-                return;
-            }
+            const isNewCategory = newCategoryContainer.style.display === 'block';
+            const newCategory = document.getElementById('edit-new-category').value.trim();
 
-            // Validate form
-            if (!eanNummer || !productnaam || !categorie || !aantal) {
+            // 🔴 Validatie
+            if (!eanNummer || !productnaam || !aantal) {
                 alert('Vul alle velden in a.u.b.');
                 return;
             }
 
-            // Get category display text
-            let categoryText = categorie;
-            if (categorie !== 'overig') {
-                const categorySelect = document.getElementById('edit-categorie');
-                categoryText = categorySelect.options[categorySelect.selectedIndex].text;
+            if (!isNewCategory && !categorieSelect.value) {
+                alert('Selecteer een categorie.');
+                return;
             }
 
-            // Werk de tabel rij bij
-            updateProductInTable(rowIndex, eanNummer, productnaam, categoryText, aantal);
+            if (isNewCategory && !newCategory) {
+                alert('Voer een nieuwe categorie in.');
+                return;
+            }
 
-            // Close modal and reset form
-            closeEditModal();
+            if (categorieSelect.value === 'overig') {
+                alert('Kies een bestaande categorie of voeg een nieuwe toe.');
+                return;
+            }
+
+            fetch('actions/productUpdate.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: productId,
+                    ean: eanNummer,
+                    productnaam: productnaam,
+                    categorie_id: isNewCategory ? null : categorieSelect.value,
+                    new_categorie: isNewCategory ? newCategory : null,
+                    aantal: aantal
+                })
+            })
+            .then(() => {
+                location.reload();
+            });
         });
     }
 

@@ -89,7 +89,7 @@ $categories = $resultCat->fetch_all(MYSQLI_ASSOC);
                             <td><span class="quantity-badge"><?= htmlspecialchars($row['aantal']) ?></span></td>
                             <td>
                                 <div class="actions">
-                                    <button class="btn-edit">
+                                    <button class="btn-edit" data-id="<?= $row['idProducts'] ?>">
                                         <i class="fas fa-pencil"></i>
                                     </button>
                                     <button class="btn-delete" <?= $row['in_use'] ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : '' ?>data-id="<?= $row['idProducts'] ?>">
@@ -183,6 +183,7 @@ $categories = $resultCat->fetch_all(MYSQLI_ASSOC);
             
             <form class="modal-form" id="edit-form">
                 <input type="hidden" id="edit-row-index" name="edit-row-index">
+                <input type="hidden" id="edit-product-id" name="edit-product-id">
                 
                 <div class="form-group">
                     <label for="edit-ean-nummer">EAN-nummer</label>
@@ -199,13 +200,6 @@ $categories = $resultCat->fetch_all(MYSQLI_ASSOC);
                     <div id="edit-category-container">
                         <select id="edit-categorie" name="edit-categorie">
                             <option value="">Selecteer categorie...</option>
-                            <!-- <option value="aardappelen">Aardappelen, Groente, Fruit</option>
-                            <option value="zuivel">Zuivel</option>
-                            <option value="brood">Brood</option>
-                            <option value="pasta">Pasta, Rijst, Grit</option>
-                            <option value="conserven">Conserven</option>
-                            <option value="vlees">Vlees, Vis, Vega</option>
-                            <option value="dranken">Dranken</option> -->
                             <?php foreach ($categories as $cat): ?>
                                 <option value="<?= $cat['idCategories'] ?>">
                                     <?= htmlspecialchars($cat['product_categorie']) ?>
@@ -220,6 +214,7 @@ $categories = $resultCat->fetch_all(MYSQLI_ASSOC);
                             <div class="new-category-buttons">
                                 <button type="button" class="btn-add-category" onclick="addEditNewCategory()">Toevoegen</button>
                                 <button type="button" class="btn-cancel-category" onclick="cancelEditNewCategory()">Annuleren</button>
+                                <input type="hidden" id="is-new-category" value="0">
                             </div>
                         </div>
                     </div>
