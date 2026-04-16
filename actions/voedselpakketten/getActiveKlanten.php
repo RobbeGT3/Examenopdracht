@@ -6,6 +6,7 @@ header('Content-Type: application/json');
 $sql = "
 SELECT 
     k.idKlanten,
+    k.gezinsnaam,
     k.voornaam,
     k.achternaam,
     k.adres,

@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let families = {};
     let products = [];
+    let pakketten = [];
 
     let selectedFamilyName = "";
     let selectedProduct = null;
@@ -73,6 +74,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     loadFamilies();
     loadProducts();
+    loadPakketten();
 
     async function loadFamilies() {
         const res = await fetch("/actions/voedselpakketten/getActiveKlanten.php");
@@ -81,8 +83,10 @@ document.addEventListener("DOMContentLoaded", function () {
         families = {};
 
         data.forEach(k => {
-            const label = `Familie ${k.achternaam}`;
-            const key = `${label} - ${k.postcode}`;
+            // const label = `Familie ${k.achternaam}`;
+            // const key = `${label} - ${k.postcode}`;
+
+            const key = `${k.gezinsnaam}`;
 
             families[key] = {
                 id: k.idKlanten,
@@ -103,6 +107,13 @@ document.addEventListener("DOMContentLoaded", function () {
         products = await res.json();
 
         renderProducts();
+    }
+
+    async function loadPakketten() {
+        const res = await fetch("/actions/voedselpakketten/getVoedselpakketten.php");
+        pakketten = await res.json();
+
+        renderPakketten();
     }
 
     familySearch.addEventListener("input", () => {

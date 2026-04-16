@@ -4,35 +4,52 @@ require_once __DIR__ . '/../../common/dbconnection.php';
 header('Content-Type: application/json');
 
 $sql = "
-SELECT 
-    k.idKlanten,
-    k.voornaam,
-    k.achternaam,
-    k.adres,
-    k.postcode,
-    k.woonplaats,
-    k.aantal_volwassen,
-    k.aantal_kinderen,
-    k.aantal_babies,
-    GROUP_CONCAT(DISTINCT kw.klantenwens) AS wensen,
-    GROUP_CONCAT(DISTINCT ka.omschrijving) AS allergenen
-FROM Klanten k
-LEFT JOIN Klanten_has_Klantenwensen khkw 
-    ON k.idKlanten = khkw.Klanten_idKlanten
-LEFT JOIN Klantenwensen kw 
-    ON khkw.Klantenwensen_idKlantenwensen = kw.idKlantenwensen
-LEFT JOIN Klanten_allergenen ka 
-    ON k.idKlanten = ka.Klanten_idKlanten
-WHERE k.status = 'Goedgekeurd'
-GROUP BY k.idKlanten
+SELECT
+vp.idVoedselpakketten AS pakket_id,
+k.gezinsnaam,
+k.voornaam,
+k.achternaam,
+k.postcode,
+vp.uitgifte_datum,
+vp.samenstellings_datum,
+p.productnaam,
+vhp.aantal
+FROM Voedselpakketten vp
+INNER JOIN Klanten k ON vp.Klanten_idKlanten = k.idKlanten
+INNER JOIN Voedselpakketten_has_Products vhp ON  vp.idVoedselpakketten = vhp.Voedselpakketten_idVoedselpakketten
+INNER JOIN Products p  ON vhp.Products_idProducts = p.idProducts
+ORDER BY vp.idVoedselpakketten;
 ";
 
 $result = mysqli_query($conn, $sql);
 
-$klanten = [];
+$pakketten = [];
 
-while ($row = mysqli_fetch_assoc($result)) {
-    $klanten[] = $row;
+while ($row = $result->fetch_assoc()) {
+
+    $id = $row['pakket_id'];
+
+    // bestaat pakket al?
+    if (!isset($pakketten[$id])) {
+        $pakketten[$id] = [
+            "id" => $id,
+            "gezinsnaam" => $row['gezinsnaam'],
+            "voornaam" => $row['voornaam'],
+            "achternaam" => $row['achternaam'],
+            "postcode" => $row['postcode'],
+            "uitgiftedatum" => $row['uitgiftedatum'],
+            "samenstellings_datum" => $row['uitgiftedatum'],
+            "producten" => []
+        ];
+    }
+
+    // voeg product toe
+    $pakketten[$id]["producten"][] = [
+        "naam" => $row['productnaam'],
+        "aantal" => (int)$row['aantal']
+    ];
 }
 
-echo json_encode($klanten);
+echo json_encode($pakketten);
+
+?>
