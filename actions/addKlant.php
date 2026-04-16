@@ -7,7 +7,7 @@ require_once  __DIR__. '/../common/dbconnection.php';
 
 $stmt = $conn->prepare("
 INSERT INTO Klanten 
-(voornaam, achternaam, adres, postcode, woonplaats, telefoonnummer, `e-mailadres`, aantal_volwassen, aantal_kinderen,`aantal_baby's`,`status`,registratie_datum)
+(voornaam, achternaam, adres, postcode, woonplaats, telefoonnummer, `e-mailadres`, aantal_volwassen, aantal_kinderen, aantal_babies,`status`,registratie_datum)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Goedgekeurd', ?)
 ");
 $registratieDatum = date('Y-m-d');;

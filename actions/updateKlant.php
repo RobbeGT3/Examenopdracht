@@ -8,7 +8,7 @@ require_once  __DIR__. '/../common/dbconnection.php';
 $id = $_POST['id'];
 $stmt = $conn->prepare("
 UPDATE Klanten 
-SET voornaam=?, achternaam=?, adres=?, postcode=?, woonplaats=?, telefoonnummer=?, `e-mailadres`=?, aantal_volwassen=?, aantal_kinderen=?, `aantal_baby's`=?
+SET voornaam=?, achternaam=?, adres=?, postcode=?, woonplaats=?, telefoonnummer=?, `e-mailadres`=?, aantal_volwassen=?, aantal_kinderen=?, aantal_babies=?
 WHERE idKlanten=?
 ");
 $stmt->bind_param(

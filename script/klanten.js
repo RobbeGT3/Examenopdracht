@@ -101,7 +101,7 @@ document.querySelectorAll('.btn-edit').forEach(btn => {
     document.querySelector('[name="email"]').value = klant['e-mailadres'] || '';
     document.querySelector('[name="volwassenen"]').value = klant['aantal_volwassen'] || '';
     document.querySelector('[name="kinderen"]').value = klant['aantal_kinderen'] || '';
-    document.querySelector('[name="babys"]').value = klant["aantal_baby's"] || '';
+    document.querySelector('[name="babys"]').value = klant["aantal_babies"] || '';
 
 
     const wensenIds = klant.wensen_ids ? klant.wensen_ids.split(',') : [];

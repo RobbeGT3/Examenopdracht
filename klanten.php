@@ -20,7 +20,7 @@ $stmt1 = $conn->prepare("SELECT
     k.`e-mailadres`,
     k.aantal_volwassen,
     k.aantal_kinderen,
-    k.`aantal_baby's`,
+    k.aantal_babies,
     k.`status`,
     GROUP_CONCAT(DISTINCT kw.idKlantenwensen) AS wensen_ids,
     GROUP_CONCAT(DISTINCT kw.klantenwens) AS wensen,
