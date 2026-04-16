@@ -7,6 +7,7 @@
         <p>
           <?php
             echo $_SESSION['userrole']
+            // echo $_SESSION['username']
           ?>
         </p>
       </div>
