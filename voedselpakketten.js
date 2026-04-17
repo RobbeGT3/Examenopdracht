@@ -183,6 +183,58 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    function renderPakketten() {
+        const container = document.getElementById("pakketList");
+        const emptyState = document.getElementById("emptyState");
+
+        container.innerHTML = "";
+
+        if (pakketten.length === 0) {
+            emptyState.style.display = "block";
+            return;
+        }
+
+        emptyState.style.display = "none";
+
+        pakketten.forEach((p, index) => {
+            const div = document.createElement("div");
+
+            div.className = "package-card";
+
+            const statusTag = !p.uitgiftedatum
+                ? `<span class="status-tag pending">In wachtrij</span>`
+                : `<span class="status-tag done">Uitgegeven</span>`;
+
+            div.innerHTML = `
+                <div class="card-header">
+                    <h3>Pakket #${p.id}</h3>
+                    ${statusTag}
+                </div>
+
+                <p><strong>${p.gezinsnaam}</strong></p>
+                <p>${p.postcode}</p>
+                <p>Samengesteld: ${p.samenstellings_datum || '-'}</p>
+                <p>Producten: ${p.producten_totaal || 0}</p>
+
+                <div class="pakket-actions">
+                    <button class="btn-view" onclick="bekijkPakket(${p.id})">
+                        Bekijken
+                    </button>
+
+                    ${
+                        !p.uitgiftedatum
+                            ? `<button class="btn-give" onclick="markeerUitgegeven(${p.id})">
+                                Uitgeven
+                            </button>`
+                            : ""
+                    }
+                </div>
+            `;
+
+            container.appendChild(div);
+        });
+    }
+
     function selectFamily(key) {
         selectedFamilyName = key;
         const f = families[key];
@@ -283,17 +335,69 @@ document.addEventListener("DOMContentLoaded", function () {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 klantId: family.id,
-                producten: selectedProducts
+                producten: selectedProducts,
+                // add: TRUE
             })
         });
 
-        // const result = await res.json();
         location.reload();
-
-        // if (result.success) {
-        //     alert("Pakket opgeslagen");
-        //     location.reload();
-        // }
     });
+
+    window.bekijkPakket = function (id) {
+        const pakket = pakketten.find(p => p.id == id);
+        if (!pakket) return;
+        document.getElementById("viewTitle").textContent = `Pakket #${id} - Details`;
+
+        const content = document.getElementById("viewContent");
+
+        content.innerHTML = `
+            <div class="detail-label">Klant</div>
+            <div class="detail-value">${pakket.gezinsnaam}</div>
+
+            <div class="detail-label">Datum Samenstelling</div>
+            <div class="detail-value">${pakket.samenstellings_datum || '-'}</div>
+
+            <div class="detail-label">Datum Uitgave</div>
+            <div class="detail-value">${pakket.uitgiftedatum || '-'}</div>
+
+            <div class="detail-label">Producten</div>
+
+            ${
+                pakket.producten && pakket.producten.length > 0
+                    ? pakket.producten.map(p => `
+                        <div class="product-box">
+                            <div class="product-row">
+                                <div>
+                                    <div class="product-name">${p.naam}</div>
+                                    <div class="product-category">${p.categorie}</div>
+                                </div>
+                                <div class="product-amount">${p.aantal}x</div>
+                            </div>
+                        </div>
+                    `).join("")
+                    : "<p>Geen producten</p>"
+            }
+        `;
+
+        document.getElementById("viewModal").classList.remove("hidden");
+    };
+
+    window.closeViewModal = function () {
+        document.getElementById("viewModal").classList.add("hidden");
+    };
+
+    window.markeerUitgegeven = async function (id) {
+        if (!confirm("Weet je zeker dat je dit pakket wilt uitgeven?")) return;
+
+        const res = await fetch("/actions/voedselpakketten/markeerUitgegeven.php", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ id: id })
+        });
+
+        location.reload();
+    };
 
 });
