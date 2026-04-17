@@ -151,6 +151,18 @@ require_once  __DIR__. '/common/dbconnection.php';
         </div>
     </div>
 </div>
+</div>
+
+<div id="viewModal" class="modal-overlay hidden">
+    <div class="modal-package view-modal">
+        <div class="modal-header">
+            <h2 id="viewTitle">Pakket #1 - Details</h2>
+            <button onclick="closeViewModal()" class="close-btn">✕</button>
+        </div>
+
+        <div class="modal-content" id="viewContent"></div>
+    </div>
+</div>
 
 <script src="voedselpakketten.js"></script>
 <!-- <script src="test2.js"></script> -->
