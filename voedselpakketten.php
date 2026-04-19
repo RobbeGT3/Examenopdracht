@@ -16,7 +16,7 @@ require_once  __DIR__. '/common/dbconnection.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voedselpakketten</title>
     <link rel="stylesheet" href="styles/styles.css">
-    <link rel="stylesheet" href="voedselpakketten.css">
+    <link rel="stylesheet" href="styles/voedselpakketten.css">
 </head>
 <body>
 
@@ -61,13 +61,13 @@ require_once  __DIR__. '/common/dbconnection.php';
                         <span class="dropdown-arrow">⌄</span>
                     </div>
                     <!-- dropdown met zoekfunctie met klanten data. bestaat uit string family + achternaam - Postcode -->
-                    <div class="dropdown-list hidden" id="familyOptions">
+                    <!-- <div class="dropdown-list hidden" id="familyOptions">
                         <div class="dropdown-item family-item" data-value="Familie Bakker - 1234AB">Familie Bakker - 1234AB</div>
                         <div class="dropdown-item family-item" data-value="Familie Visser - 1234CD">Familie Visser - 1234CD</div>
                         <div class="dropdown-item family-item" data-value="Familie Yilmaz - 5678EF">Familie Yilmaz - 5678EF</div>
-                    </div>
+                    </div> -->
 
-                    <!-- <div class="dropdown-list hidden" id="familyOptions"></div> -->
+                    <div class="dropdown-list hidden" id="familyOptions"></div>
                 </div>
             </div>
 
@@ -120,13 +120,13 @@ require_once  __DIR__. '/common/dbconnection.php';
                         <span class="dropdown-arrow">⌄</span>
                     </div>
 
-                    <div class="dropdown-list hidden" id="productOptions">
+                    <div class="dropdown-list hidden" id="productOptions"> </div>
                         <!-- producten opties -->
-                        <div class="dropdown-item product-item-option"
+                        <!-- <div class="dropdown-item product-item-option"
                              data-name="Aardappelen (1kg)"
                              data-category="Aardappelen, Groente, Fruit">
                             Aardappelen (1kg) - Aardappelen, Groente, Fruit (Voorraad: 100)
-                    </div>
+                        </div> -->
                 </div>
 
                 <label class="amount-label">Aantal</label>
@@ -164,7 +164,8 @@ require_once  __DIR__. '/common/dbconnection.php';
     </div>
 </div>
 
-<script src="voedselpakketten.js"></script>
+<script src="script/voedselpakketten.js"></script>
+<script src="script/nav.js"></script>
 <!-- <script src="test2.js"></script> -->
 </body>
 </html>
