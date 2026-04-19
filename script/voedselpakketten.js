@@ -61,6 +61,12 @@ document.addEventListener("DOMContentLoaded", function () {
         productStepBox.classList.add("hidden");
         selectedProductsBox.classList.add("hidden");
 
+        document.getElementById("allergyBox").classList.add("hidden");
+        document.getElementById("allergyText").textContent = "";
+
+        qty = 1;
+        qtyInput.value = 1;
+
         renderSelected();
     }
 
@@ -118,7 +124,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     familySearch.addEventListener("input", () => {
         const term = familySearch.value.toLowerCase();
-
         const items = familyOptions.querySelectorAll(".dropdown-item");
 
         items.forEach(item => {
@@ -131,7 +136,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     productSearch.addEventListener("input", () => {
         const term = productSearch.value.toLowerCase();
-
         const items = productOptions.querySelectorAll(".dropdown-item");
 
         items.forEach(item => {
@@ -142,6 +146,12 @@ document.addEventListener("DOMContentLoaded", function () {
         productOptions.classList.remove("hidden");
     });
 
+    document.addEventListener("click", (e) => {
+        if (!e.target.closest(".searchable-dropdown")) {
+            familyOptions.classList.add("hidden");
+            productOptions.classList.add("hidden");
+        }
+    });
     function renderFamilies() {
         familyOptions.innerHTML = "";
 
@@ -170,12 +180,13 @@ document.addEventListener("DOMContentLoaded", function () {
         products.forEach(p => {
             const div = document.createElement("div");
             div.className = "dropdown-item";
-
-            div.textContent = `${p.productnaam} (${p.product_categorie}) - voorraad: ${p.aantal}`;
+            const displayName = `${p.productnaam} (${p.product_categorie}) - voorraad: ${p.aantal}`
+            div.textContent = displayName;
 
             div.addEventListener("click", () => {
                 selectedProduct = p;
-                productSearch.value = p.productnaam;
+                productSearch.value = `${p.productnaam} (${p.product_categorie})`;
+
                 productOptions.classList.add("hidden");
             });
 
@@ -258,7 +269,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const allergyText = document.getElementById("allergyText");
 
         if (f.allergies && f.allergies !== "") {
-            allergyText.textContent = f.allergies;
+            allergyText.textContent = f.allergies.replaceAll(",", ", ");
             allergyBox.classList.remove("hidden");
         } else {
             allergyBox.classList.add("hidden");
