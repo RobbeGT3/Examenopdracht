@@ -1,193 +1,620 @@
-const state = {
-  isOpen: false,
-  allergieën: [],
-  origineleAllergieën: [],
-  wensen:[],
-  origineleWensen:[]
-};
+let clients = [];
+let products = [];
+let currentClient = null;
+let isEditMode = false;   
 
-const modal = document.querySelector('.modal-overlay');
-const openBtn = document.querySelector('.btn-add');
-const closeBtn = document.querySelector('.close-btn');
-const cancelBtn = document.querySelector('.btn-muted');
+async function loadKlanten() {
+  const res = await fetch("/actions/klanten/getKlanten.php");
+  clients = await res.json();
 
-openBtn.onclick = () => {
-  state.isOpen = true;
-  render();
-};
-
-closeBtn.onclick = cancelBtn.onclick = () => {
-  state.isOpen = false;
-  reset();
-  render();
-};
-
-function renderModal() {
-  modal.style.display = state.isOpen ? 'flex' : 'none';
+  renderTable();
 }
 
-document.querySelectorAll('[data-allergie]').forEach(btn => {
-  btn.onclick = () => {
-    const val = btn.dataset.allergie;
 
-    if (!state.allergieën.includes(val)) {
-      state.allergieën.push(val);
-      render();
-    }
-  };
-});
+async function loadProducts() {
+  const res = await fetch("/actions/klanten/getProductVoorraad.php");
+  products = await res.json();
 
-function renderAllergieën() {
-  const container = document.getElementById('allergieTags');
-  const hidden = document.getElementById('allergieënInput');
+  fillProductSelect();
+}
 
-  container.innerHTML = '';
 
-  state.allergieën.forEach((a, i) => {
-    const el = document.createElement('span');
-    el.className = 'tag tag-red';
-    el.innerHTML = `${a} <button data-i="${i}">x</button>`;
-    container.appendChild(el);
+function fillProductSelect() {
+  productSelect.innerHTML = '<option value="">-- Kies een product --</option>';
+
+  products.forEach(product => {
+    const option = document.createElement("option");
+    option.value = product.idProducts; 
+    const displayName = `${product.productnaam} (${product.product_categorie}) - voorraad: ${product.aantal}`;
+    option.textContent = displayName;
+
+    productSelect.appendChild(option);
   });
-
-  container.querySelectorAll('button').forEach(btn => {
-    btn.onclick = () => {
-      state.allergieën.splice(btn.dataset.i, 1);
-      render();
-    };
-  });
-
-  hidden.value = JSON.stringify(state.allergieën);
 }
 
-const customBtn = document.getElementById('customBtn');
-const customDiv = document.getElementById('customInput');
-const customInput = document.getElementById('customAllergie');
-const customCancel = document.getElementById('cancelCustom');
+loadKlanten();
+loadProducts();
 
-customBtn.onclick = () => {
-  customDiv.style.display = 'block';
-};
+document.addEventListener("click", (e) => {
 
-customCancel.onclick = () =>{
-  customDiv.style.display = 'none';
-}
+  if (e.target.classList.contains("family-link")) {
+    const id = e.target.dataset.id;
 
-document.getElementById('addCustom').onclick = () => {
-  const val = customInput.value.trim();
+    const client = clients.find(c => c.idKlanten == id);
 
-  if (val) {
-    state.allergieën.push(val);
-    customInput.value = '';
-    customDiv.style.display = 'none';
-    render();
+    fillClientDetail(client);
+    openModal(clientDetailModal);
   }
-};
 
-document.querySelectorAll('.btn-edit').forEach(btn => {
-  btn.onclick = () => {
-    const klant = JSON.parse(btn.dataset.klant);
+  if (e.target.classList.contains("openPackageModal")) {
+    const id = e.target.dataset.id;
 
-    state.isOpen = true;
-    state.allergieën = klant.allergenen ? klant.allergenen.split(',') : [];
-    state.origineleAllergieën = [...state.allergieën];
-
-    document.querySelector('[name="voornaam"]').value = klant.voornaam || '';
-    document.querySelector('[name="achternaam"]').value = klant.achternaam || '';
-    document.querySelector('[name="adres"]').value = klant.adres || '';
-    document.querySelector('[name="postcode"]').value = klant.postcode || '';
-    document.querySelector('[name="woonplaats"]').value = klant.woonplaats || '';
-    document.querySelector('[name="telefoonnummer"]').value = klant.telefoonnummer || '';
-    document.querySelector('[name="email"]').value = klant['e-mailadres'] || '';
-    document.querySelector('[name="volwassenen"]').value = klant['aantal_volwassen'] || '';
-    document.querySelector('[name="kinderen"]').value = klant['aantal_kinderen'] || '';
-    document.querySelector('[name="babys"]').value = klant["aantal_babies"] || '';
+    const client = clients.find(c => c.idKlanten == id);
+    currentClient = client; 
 
 
-    const wensenIds = klant.wensen_ids ? klant.wensen_ids.split(',') : [];
+    fillPackageModal(client);
+    selectedProducts = [];
+    qty = 1;
+    qtyInput.value = 1;
+    renderProducts();
 
-    state.wensen = [...wensenIds];
-    state.origineleWensen = [...wensenIds];
+    openModal(packageModal);
+  }
 
-    document.querySelectorAll('[name="wensen[]"]').forEach(cb => {
-      cb.checked = wensenIds.includes(cb.value);
-    });
+  if (e.target.classList.contains("givePackage")) {
+    const id = e.target.dataset.id;
+    if (!id) {
+    alert("Geen voedselpakket gevonden");
+    return;
+  }
 
-    state.allergieën = klant.allergenen
-      ? klant.allergenen.split(',').map(a => a.trim())
-      : [];
+  givePackage(id);
+    
+  }
 
-
-    document.getElementById('klantForm').dataset.id = klant.idKlanten;
-
-    render();
-  };
 });
 
-document.querySelectorAll('[name="wensen[]"]').forEach(cb => {
-  cb.onchange = () => {
-    if (cb.checked) {
-      if (!state.wensen.includes(cb.value)) {
-        state.wensen.push(cb.value);
-      }
-    } else {
-      state.wensen = state.wensen.filter(w => w !== cb.value);
-    }
-  };
-});
+async function givePackage(voedselpakketId) {
+  if (!voedselpakketId) return;
 
-document.getElementById('klantForm').addEventListener('submit', e => {
-  e.preventDefault();
-
-  const formData = new FormData(e.target);
-
-  const id = e.target.dataset.id;
-  let url;
-  if (id) {
-    formData.append('id', id);
-    const verwijderdAllergenen = state.origineleAllergieën.filter(a => !state.allergieën.includes(a));
-    const toegevoegdAllergenen = state.allergieën.filter(a => !state.origineleAllergieën.includes(a));
-    const verwijderdeWensen = state.origineleWensen.filter(w => !state.wensen.includes(w));
-    const toegevoegdeWensen = state.wensen.filter(w => !state.origineleWensen.includes(w));
-
-    formData.append('allergieën_toegevoegd', JSON.stringify(toegevoegdAllergenen));
-    formData.append('allergieën_verwijderd', JSON.stringify(verwijderdAllergenen));
-    formData.append('wensen_toegevoegd', JSON.stringify(toegevoegdeWensen));
-    formData.append('wensen_verwijderd', JSON.stringify(verwijderdeWensen));
-    url = 'actions/updateKlant.php';
-  } else {
-    url = 'actions/addKlant.php';
-  }
-  fetch(url, {
-      method: 'POST',
-      body: formData
+  await fetch("/actions/klanten/markeerUitgegeven.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      idVoedselpakketten: voedselpakketId
     })
-  .then(res => res.text())
-  .then(() => {
-    state.isOpen = false;
-    reset();
-    render();
-    location.reload();
+  });
+
+  loadKlanten();
+}
+
+const overlay = document.getElementById("modalOverlay");
+const clientDetailModal = document.getElementById("clientDetailModal");
+const packageModal = document.getElementById("packageModal");
+const newClientModal = document.getElementById("newClientModal");
+
+const openClientDetailButtons = document.querySelectorAll(".openClientDetail");
+const openPackageButtons = document.querySelectorAll(".openPackageModal");
+const openNewClientModal = document.getElementById("openNewClientModal");
+const closeButtons = document.querySelectorAll("[data-close]");
+const searchInput = document.getElementById("searchInput");
+
+const detailTitle = document.getElementById("detailTitle");
+const detailVoornaam = document.getElementById("detailVoornaam");
+const detailAchternaam = document.getElementById("detailAchternaam");
+const detailAdres = document.getElementById("detailAdres");
+const detailPostcode = document.getElementById("detailPostcode");
+const detailWoonplaats = document.getElementById("detailWoonplaats");
+const detailTelefoon = document.getElementById("detailTelefoon");
+const detailEmail = document.getElementById("detailEmail");
+const detailAdults = document.getElementById("detailAdults");
+const detailChildren = document.getElementById("detailChildren");
+const detailBabies = document.getElementById("detailBabies");
+const detailDiet = document.getElementById("detailDiet");
+const detailAllergy = document.getElementById("detailAllergy");
+const detailPackages = document.getElementById("detailPackages");
+const detailLastPackage = document.getElementById("detailLastPackage");
+const detailStatus = document.getElementById("detailStatus");
+const approveBtn = document.getElementById("approveClientBtn");
+const deleteBtn = document.getElementById("deleteClientBtn");
+
+
+const packageForText = document.getElementById("packageForText");
+const packageAdults = document.getElementById("packageAdults");
+const packageChildren = document.getElementById("packageChildren");
+const packageBabies = document.getElementById("packageBabies");
+const packageDiet = document.getElementById("packageDiet");
+
+const productSelect = document.getElementById("productSelect");
+const minusQty = document.getElementById("minusQty");
+const plusQty = document.getElementById("plusQty");
+const qtyInput = document.getElementById("qtyInput");
+const addProductBtn = document.getElementById("addProductBtn");
+const productList = document.getElementById("productList");
+const productCount = document.getElementById("productCount");
+const savePackageBtn = document.getElementById("savePackageBtn");
+
+
+const editClientBtn = document.getElementById("editClientBtn");
+
+editClientBtn.addEventListener("click", () => {
+  openEditClientModal(currentClient);
+});
+
+const saveClientBtn = document.getElementById("saveClientBtn");
+// saveClientBtn.addEventListener("click", async () => {
+
+//   const data = {
+//     voornaam: document.getElementById("voornaam").value.trim(),
+//     achternaam: document.getElementById("achternaam").value.trim(),
+//     adres: document.getElementById("adres").value.trim(),
+//     postcode: document.getElementById("postcode").value.trim(),
+//     woonplaats: document.getElementById("woonplaats").value.trim(),
+//     telefoon: document.getElementById("telefoonnummer").value.trim(),
+//     email: document.getElementById("email").value.trim(),
+//     volwassenen: document.getElementById("volwassenen").value,
+//     kinderen: document.getElementById("kinderen").value,
+//     babies: document.getElementById("babies").value,
+//     wensen: Array.from(document.querySelectorAll('input[name="wensen[]"]:checked'))
+//                   .map(cb => cb.value),
+//     allergieen: getAllergies()
+//   };
+
+//   if (
+//     !data.voornaam ||
+//     !data.achternaam ||
+//     !data.adres ||
+//     !data.postcode ||
+//     !data.woonplaats ||
+//     !data.telefoon ||
+//     !data.email
+//   ) {
+//     alert("Vul alle verplichte velden in.");
+//     return;
+//   }
+
+//   await fetch("/actions/klanten/createKlant.php", {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify({
+//       voornaam: data.voornaam,
+//       achternaam: data.achternaam,
+//       gezinsnaam: data.gezinsnaam,
+//       adres: data.adres,
+//       postcode: data.postcode,
+//       woonplaats: data.woonplaats,
+//       telefoon: data.telefoon,
+//       email: data.email,
+//       volwassenen: data.volwassenen,
+//       kinderen: data.kinderen,
+//       babies: data.babies,
+//       wensen: data.wensen,
+//       allergieen: data.allergieen
+//     })
+//   })
+//   .then(()=>{location.reload(); });
+// });
+
+saveClientBtn.addEventListener("click", async () => {
+
+  const data = {
+    voornaam: document.getElementById("voornaam").value.trim(),
+    achternaam: document.getElementById("achternaam").value.trim(),
+    adres: document.getElementById("adres").value.trim(),
+    postcode: document.getElementById("postcode").value.trim(),
+    woonplaats: document.getElementById("woonplaats").value.trim(),
+    telefoon: document.getElementById("telefoonnummer").value.trim(),
+    email: document.getElementById("email").value.trim(),
+    volwassenen: document.getElementById("volwassenen").value,
+    kinderen: document.getElementById("kinderen").value,
+    babies: document.getElementById("babies").value,
+    wensen: Array.from(document.querySelectorAll('input[name="wensen[]"]:checked'))
+                  .map(cb => cb.value),
+    allergieen: getAllergies()
+  };
+
+  if (
+    !data.voornaam ||
+    !data.achternaam ||
+    !data.adres ||
+    !data.postcode ||
+    !data.woonplaats ||
+    !data.telefoon ||
+    !data.email
+  ) {
+    alert("Vul alle verplichte velden in.");
+    return;
+  }
+  const url = isEditMode
+    ? "/actions/klanten/updateKlant.php"
+    : "/actions/klanten/createKlant.php";
+
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id: currentClient?.idKlanten, 
+      ...data
+    })
+  });
+
+  closeAllModals();
+  loadKlanten(); 
+});
+
+
+function getAllergies() {
+  if (!hasAllergy.checked) return [];
+
+  const value = document.getElementById("allergyInput").value;
+
+  return value
+    .split(",")
+    .map(a => a.trim())
+    .filter(a => a.length > 0);
+}
+
+const hasAllergy = document.getElementById("hasAllergy");
+const allergyContainer = document.getElementById("allergyContainer");
+
+hasAllergy.addEventListener("change", () => {
+  if (hasAllergy.checked) {
+    allergyContainer.classList.remove("hidden");
+  } else {
+    allergyContainer.classList.add("hidden");
+  }
+});
+
+let qty = 1;
+let selectedProducts = [];
+
+function closeAllModals() {
+  overlay.classList.add("hidden");
+  clientDetailModal.classList.add("hidden");
+  packageModal.classList.add("hidden");
+  newClientModal.classList.add("hidden");
+
+  resetNewClientModal();
+  resetPackageModal();
+}
+
+function openModal(modal) {
+  overlay.classList.remove("hidden");
+  modal.classList.remove("hidden");
+}
+
+function resetNewClientModal() {
+  document.querySelectorAll("#newClientModal input").forEach(input => {
+    if (input.type === "checkbox") {
+      input.checked = false;
+    } else {
+      input.value = "";
+    }
+  });
+
+  allergyContainer.classList.add("hidden");
+}
+
+function resetPackageModal() {
+  selectedProducts = [];
+  qty = 1;
+
+  qtyInput.value = 1;
+  productSelect.value = "";
+
+  renderProducts();
+}
+
+
+function fillClientDetail(client) {
+  currentClient = client;
+
+  detailTitle.textContent = client.gezinsnaam;
+  detailVoornaam.textContent = client.voornaam;
+  detailAchternaam.textContent = client.achternaam;
+  detailAdres.textContent = client.adres;
+  detailPostcode.textContent = client.postcode;
+  detailWoonplaats.textContent = client.woonplaats;
+  detailTelefoon.textContent = client.telefoonnummer;
+  detailEmail.textContent = client.email;
+  detailAdults.textContent = client.volwassenen;
+  detailChildren.textContent = client.kinderen;
+  detailBabies.textContent = client.babies;
+  detailDiet.textContent = client.wensen;
+  detailAllergy.textContent = client.allergenen;
+  detailPackages.textContent = client.aantal_pakketten;
+  detailLastPackage.textContent = client.laatste_samenstelling || "Nog geen pakket";
+  detailStatus.innerHTML = client.status === "Goedgekeurd"
+  ? '<span class="status-success">✓ Goedgekeurd</span>'
+  : '<span class="status-error">✗ Pending</span>';
+
+  const approveBtn = document.getElementById("approveClientBtn");
+  if (client.status === "Pending") {
+    approveBtn.classList.remove("hidden");
+  } else {
+    approveBtn.classList.add("hidden");
+  }
+}
+
+function openEditClientModal(client) {
+
+  isEditMode = true;
+  document.getElementById("clientModalTitle").textContent = "Klant Bewerken"; 
+  document.getElementById("voornaam").value = client.voornaam;
+  document.getElementById("achternaam").value = client.achternaam;
+  document.getElementById("adres").value = client.adres;
+  document.getElementById("postcode").value = client.postcode;
+  document.getElementById("woonplaats").value = client.woonplaats;
+  document.getElementById("telefoonnummer").value = client.telefoonnummer;
+  document.getElementById("email").value = client.email;
+
+  document.getElementById("volwassenen").value = client.volwassenen;
+  document.getElementById("kinderen").value = client.kinderen;
+  document.getElementById("babies").value = client.babies;
+
+  document.querySelectorAll('input[name="wensen[]"]').forEach(cb => {
+    cb.checked = client.wensen_ids?.includes(Number(cb.value));
+  });
+
+  if (client.allergenen && client.allergenen.length > 0) {
+    hasAllergy.checked = true;
+    allergyContainer.classList.remove("hidden");
+    let allergieen = client.allergenen;
+
+    if (typeof allergieen === "string") {
+      allergieen = allergieen.split(",");
+    }
+    if (!Array.isArray(allergieen)) {
+      allergieen = [];
+    }
+
+    if (allergieen.length > 0) {
+      hasAllergy.checked = true;
+      allergyContainer.classList.remove("hidden");
+      document.getElementById("allergyInput").value = allergieen.join(", ");
+    }
+  }
+
+  openModal(newClientModal);
+}
+
+function fillPackageModal(client) {
+  packageForText.textContent = `Voor: ${client.gezinsnaam}`;
+  packageAdults.textContent = client.volwassenen;
+  packageChildren.textContent = client.kinderen;
+  packageBabies.textContent = client.babies;
+  packageDiet.textContent = client.wensen;
+}
+
+function renderProducts() {
+  productCount.textContent = selectedProducts.length;
+
+  if (selectedProducts.length === 0) {
+    productList.className = "empty-products";
+    productList.innerHTML = "Nog geen producten toegevoegd. Selecteer hierboven een product.";
+    return;
+  }
+
+  productList.className = "";
+  productList.innerHTML = "";
+
+  selectedProducts.forEach((product, index) => {
+    const row = document.createElement("div");
+    // const name = `${product.productnaam} ${product.categorie} - voorraad: ${product.aantal}`;
+    row.className = "product-row";
+    row.innerHTML = `
+      <div class="product-row-left">
+        <span class="product-row-name">${product.name}</span>
+        <span class="product-row-qty">Aantal: ${product.amount}</span>
+      </div>
+      <button class="remove-product" data-index="${index}">&times;</button>
+    `;
+    productList.appendChild(row);
+  });
+
+  document.querySelectorAll(".remove-product").forEach(button => {
+    button.addEventListener("click", () => {
+      const index = Number(button.dataset.index);
+      selectedProducts.splice(index, 1);
+      renderProducts();
+    });
+  });
+}
+
+approveBtn.addEventListener("click", async () => {
+  if (!currentClient) return;
+
+  await fetch("/actions/klanten/approveKlant.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id: currentClient.idKlanten
+    })
+  });
+
+  closeAllModals();
+  loadKlanten();
+});
+
+deleteBtn.addEventListener("click", async () => {
+  if (!currentClient) return;
+
+  if (!confirm("Weet je zeker dat je deze klant wil verwijderen?")) return;
+
+  await fetch("/actions/klanten/deleteKlant.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id: currentClient.idKlanten
+    })
+  });
+
+  closeAllModals();
+  loadKlanten();
+});
+
+searchInput.addEventListener("input", () => {
+  const value = searchInput.value.toLowerCase();
+
+  const filtered = clients.filter(c =>
+    (c.voornaam || "").toLowerCase().includes(value) ||
+    (c.achternaam || "").toLowerCase().includes(value) ||
+    (c.gezinsnaam || "").toLowerCase().includes(value)
+  );
+
+  renderTable(filtered);
+});
+
+
+function renderTable(data = clients) {
+  const tableBody = document.getElementById("klantenTableBody");
+  tableBody.innerHTML = "";
+
+  data.forEach(client => {
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+      <td>
+        <button class="family-link" data-id="${client.idKlanten}">
+          Familie ${client.achternaam}
+        </button>
+      </td>
+      <td>${client.postcode}</td>
+      <td>${client.telefoonnummer}</td>
+      <td>
+        ${client.laatste_samenstelling
+          ? client.laatste_samenstelling
+          : '<span class="status-warning">Nog geen pakket</span>'}
+      </td>
+      <td>
+        ${client.uitgifte_datum || '-'}
+      </td>
+      
+      <td>
+        ${
+          client.status !== "Goedgekeurd" || client.uitgifte_datum
+            ? ''
+            : client.laatste_samenstelling
+              ? `<button class="btn-green-round givePackage" data-id="${client.idVoedselpakketten}">
+                  ✓ Uitgeven
+                </button>`
+              : `<button class="btn-blue openPackageModal" data-id="${client.idKlanten}">
+                  + Aanmaken
+                </button>`
+        }
+      </td>
+      <td>
+        ${
+          client.status == 'Goedgekeurd'
+            ? '<span class="status-success">✓ Goedgekeurd</span>'
+            : '<span class="status-error">✗ Pending</span>'
+        }
+      </td>
+    `;
+
+    tableBody.appendChild(row);
+  });
+}
+
+savePackageBtn.addEventListener("click", async () => {
+
+  if (!currentClient) {
+    alert("Geen klant geselecteerd");
+    return;
+  }
+
+  if (selectedProducts.length === 0) {
+    alert("Voeg eerst producten toe");
+    return;
+  }
+
+  await fetch("/actions/klanten/createVoedselpakket.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      klantId: currentClient.idKlanten,
+      producten: selectedProducts
+    })
+  });
+
+  closeAllModals();
+  loadKlanten();
+});
+openClientDetailButtons.forEach(button => {
+  button.addEventListener("click", () => {
+    const clientKey = button.dataset.client;
+    fillClientDetail(clients[clientKey]);
+    openModal(clientDetailModal);
   });
 });
 
-function reset() {
-  state.allergieën = [];
-  state.origineleAllergieën = [];
-  state.wensen = [];
-  state.origineleWensen = [];
-  document.getElementById('klantForm').reset();
-
-  document.querySelectorAll('[name="wensen[]"]').forEach(cb => {
-    cb.checked = false;
+openPackageButtons.forEach(button => {
+  button.addEventListener("click", () => {
+    const clientKey = button.dataset.client;
+    fillPackageModal(clients[clientKey]);
+    selectedProducts = [];
+    qty = 1;
+    qtyInput.value = 1;
+    productSelect.value = "";
+    renderProducts();
+    openModal(packageModal);
   });
+});
 
-  delete document.getElementById('klantForm').dataset.id;
-}
+openNewClientModal.addEventListener("click", () => {
+  isEditMode = false;
+  document.getElementById("clientModalTitle").textContent = "Nieuwe Klant"; // NIEUW
+  openModal(newClientModal);
+});
 
-function render() {
-  renderModal();
-  renderAllergieën();
-}
+closeButtons.forEach(button => {
+  button.addEventListener("click", closeAllModals);
+});
 
-render();
+overlay.addEventListener("click", closeAllModals);
+
+minusQty.addEventListener("click", () => {
+  if (qty > 1) {
+    qty--;
+    qtyInput.value = qty;
+  }
+});
+
+plusQty.addEventListener("click", () => {
+  qty++;
+  qtyInput.value = qty;
+});
+
+addProductBtn.addEventListener("click", () => {
+  const productId = productSelect.value;
+
+  if (!productId) {
+    alert("Kies eerst een product.");
+    return;
+  }
+
+  const product = products.find(p => p.idProducts == productId);
+  const existing = selectedProducts.find(p => p.id == product.idProducts);
+
+  if (existing) {
+    existing.amount += qty; 
+  } else {
+    selectedProducts.push({
+      id: product.idProducts,
+      name: product.productnaam,
+      amount: qty
+    });
+  }
+
+  qty = 1;
+  qtyInput.value = 1;
+  productSelect.value = "";
+
+  // console.log(selectedProducts);
+  renderProducts();
+});
+
+renderProducts();
