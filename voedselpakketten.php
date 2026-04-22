@@ -17,6 +17,7 @@ require_once  __DIR__. '/common/dbconnection.php';
     <title>Voedselpakketten</title>
     <link rel="stylesheet" href="styles/styles.css">
     <link rel="stylesheet" href="styles/voedselpakketten.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
@@ -27,6 +28,13 @@ require_once  __DIR__. '/common/dbconnection.php';
         <div class="voedselHeader">
             <h1 class="voedselPage-title">Voedselpakketten</h1>
             <button id="openModalBtn" class="btn-add-package">+ Nieuw Pakket Samenstellen</button>
+        </div>
+
+        <div class="search-container">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Zoek op familienaam...">
+            </div>
         </div>
 
         <div id="emptyState" class="empty-state-card">
