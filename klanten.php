@@ -1,48 +1,35 @@
 <?php
 session_start();
+
 // if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
 //     die("Page not available");
 // }
 
-
 $currentPage = basename($_SERVER['PHP_SELF']);
 require_once  __DIR__. '/common/dbconnection.php';
-
-
-$stmt1 = $conn->prepare("SELECT 
-    k.idKlanten,
-    k.voornaam,
-    k.achternaam,
-    k.adres,
-    k.postcode,
-    k.woonplaats,
-    k.telefoonnummer,
-    k.`e-mailadres`,
-    k.aantal_volwassen,
-    k.aantal_kinderen,
-    k.`aantal_baby's`,
-    k.`status`,
-    GROUP_CONCAT(DISTINCT kw.idKlantenwensen) AS wensen_ids,
-    GROUP_CONCAT(DISTINCT kw.klantenwens) AS wensen,
-    GROUP_CONCAT(DISTINCT ka.omschrijving) AS allergenen
-FROM Klanten k
-LEFT JOIN Klanten_has_Klantenwensen khkw 
-    ON k.idKlanten = khkw.Klanten_idKlanten
-LEFT JOIN Klantenwensen kw 
-    ON khkw.Klantenwensen_idKlantenwensen = kw.idKlantenwensen
-LEFT JOIN Klanten_allergenen ka 
-    ON k.idKlanten = ka.Klanten_idKlanten
-GROUP BY k.idKlanten;
+$stmt = $conn->prepare("
+    SELECT 
+        k.idKlanten,
+        k.achternaam,
+        k.postcode,
+        k.telefoonnummer,
+        MAX(v.samenstellings_datum) AS laatste_samenstelling,
+        MAX(v.uitgifte_datum) AS laatste_uitgifte
+    FROM Klanten k
+    LEFT JOIN Voedselpakketten v 
+        ON v.Klanten_idKlanten = k.idKlanten
+    GROUP BY k.idKlanten
+    ORDER BY k.achternaam ASC
 ");
-$stmt1->execute();
-$result1 = $stmt1->get_result();
-$geregistreedeklanten = $result1->fetch_all(MYSQLI_ASSOC);
 
+$stmt->execute();
+$klanten = $stmt->get_result();
 
 $stmt2 = $conn->prepare("SELECT * FROM Klantenwensen;");
 $stmt2->execute();
 $result2 = $stmt2->get_result();
 $opgeslagenWensen = $result2->fetch_all(MYSQLI_ASSOC);
+
 ?>
 
 <!DOCTYPE html>
@@ -50,201 +37,326 @@ $opgeslagenWensen = $result2->fetch_all(MYSQLI_ASSOC);
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Voedselbank Dashboard</title>
-  <link rel="stylesheet" href="styles/styles.css"/>
-  <link rel="stylesheet" href="styles/klanten.css"/>
+  <title>Klanten Beheer</title>
+  <link rel="stylesheet" href="styles/styles.css" />
+  <link rel="stylesheet" href="styles/klanten.css" />
 </head>
 <body>
   <div class="app">
     <?php include 'sidebar.php' ?>
     <main class="main">
+      <div class="klanten-page">
+        <div class="klanten-topbar">
+          <h1>Klanten Beheer</h1>
+          <button class="btn-green" id="openNewClientModal">+ Nieuwe Klant</button>
+        </div>
 
-    <div class="klantenHeader">
-      <h1 class="klantenPage-title">Klanten Beheer</h1>
-      <button class="btn-add">+ Nieuwe Klant</button>
-    </div>
-
-    <div class="klantenCard-container">
-
-      <?php foreach ($geregistreedeklanten as $klant): ?>
-
-        <?php
-          $wensen = !empty($klant['wensen']) ? explode(',', $klant['wensen']) : [];
-          $allergenen = !empty($klant['allergenen']) ? explode(',', $klant['allergenen']) : [];
-
-          $gefilterdeWensen = array_filter($wensen, function($wens) use ($allergenen) {
-            $wens = trim($wens);
-
-            if (!empty($allergenen) && str_starts_with(strtolower($wens), 'allergisch')) {
-                return false; 
-            }
-
-            return true;
-        });
-        ?>
-
-        <div class="klantenCard">
-          <div class="klantenCard-header">
-            <div class="klantenCard-title">
-              Familie <?= htmlspecialchars($klant['achternaam']) ?>
+        <div class="toolbar-card">
+          <div class="toolbar-grid">
+            <div class="toolbar-field">
+              <label>Zoeken op naam</label>
+              <input type="text" id="searchInput" placeholder="Zoek op gezinsnaam, voornaam of achternaam..." />
             </div>
-            <div class="check">✔</div>
-          </div>
 
-          <div class="klantenCard-sub">
-            <?= htmlspecialchars($klant['postcode']) ?>
-          </div>
-
-          <div class="klantenCard-info">
-            Adres: <?= htmlspecialchars($klant['adres']) ?>
-          </div>
-
-          <div class="klantenCard-info">
-            Plaats: <?= htmlspecialchars($klant['woonplaats']) ?>
-          </div>
-
-          <div class="klantenCard-info">
-            Tel: <?= htmlspecialchars($klant['telefoonnummer']) ?>
-          </div>
-
-          <div class="klantenCard-info">
-            Email: <?= htmlspecialchars($klant['e-mailadres']) ?>
-          </div>
-
-          <?php if (!empty($wensen) || !empty($allergenen)): ?>
-            <div class="tags">
-              <?php foreach ($wensen as $wens): ?>
-                <span class="tag tag-gray">
-                  <?= htmlspecialchars(trim($wens)) ?>
-                </span>
-              <?php endforeach; ?>
-              <?php foreach ($allergenen as $allergie): ?>
-                <span class="tag tag-red">
-                  <?= htmlspecialchars(trim($allergie)) ?>
-                </span>
-              <?php endforeach; ?>
-
+            <div class="toolbar-field">
+              <label>Sorteren op</label>
+              <select>
+                <option>Samenstelling (oud naar nieuw)</option>
+                <option>Samenstelling (nieuw naar oud)</option>
+                <option>Familienaam A-Z</option>
+                <option>Familienaam Z-A</option>
+              </select>
             </div>
-          <?php endif; ?>
-
-          <div class="klantenCard-actions">
-            <button class="btn-edit" data-klant='<?= htmlspecialchars(json_encode($klant), ENT_QUOTES, 'UTF-8')?>'>Bewerken</button>
-            <button class="btn-delete" data-id="<?= $klant['idKlanten'] ?>">🗑</button>
           </div>
         </div>
 
-      <?php endforeach; ?>
-
-    </div>
-
-
-  <div class="modal-overlay">
-  <div class="modal">
-    
-    <div class="modal-header">
-      <h2>Nieuwe Klant</h2>
-      <button type="button" class="close-btn">✕</button>
-    </div>
-
-    <div class="modal-content">
-      <form id="klantForm">
-        <div class="card">
-          <div class="grid-2">
-            <div>
-              <label>Voornaam *</label>
-              <input name="voornaam" placeholder="Voornaam" required>
-            </div>
-            <div>
-              <label>Achternaam *</label>
-              <input name="achternaam" placeholder="Achternaam" maxlength="50" required>
-            </div>
-            <div>
-              <label>Adres *</label>
-              <input name="adres" placeholder="Adres" maxlength="100" required>
-            </div>
-            <div>
-              <label>Postcode *</label>
-              <input name="postcode" placeholder="Postcode" maxlength="10" required>
-            </div>
-            <div>
-              <label>Woonplaats *</label>
-              <input name="woonplaats" placeholder="Woonplaats" maxlength="50" required>
-            </div>
-            <div>
-              <label>Telefoonnummer *</label>
-              <input name="telefoonnummer" placeholder="Telefoon" maxlength="20" required>
-            </div>
-            <div>
-              <label>E-mailadres *</label>
-              <input name="email" placeholder="Email" maxlength="200" required>
-            </div>
-
-          </div>
-          
+        <div class="table-card">
+          <table class="klanten-table">
+            <thead>
+              <tr>
+                <th>Familienaam</th>
+                <th>Postcode</th>
+                <th>Telefoonnummer</th>
+                <th>Laatst samengesteld</th>
+                <th>Laatste uitgifte</th>
+                <th>Voedselpakket</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="klantenTableBody">
+                
+            </tbody>
+          </table>
         </div>
-        <div class="card">
-          <h3>Gezinssamenstelling</h3>
-          <div class="grid-3">
-            <div>
-              <label>Aantal Volwassenen</label>
-              <input type="number" name="volwassenen">
-            </div>
-            <div>
-              <label>Aantal Kinderen</label>
-              <input type="number" name="kinderen">
-            </div>
-            <div>
-              <label>Aantal Baby's</label>
-              <input type="number" name="babys">
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <h3>Dieetwensen</h3>
-          <div class="wensenContainer">
-            <?php foreach ($opgeslagenWensen as $wens): ?>
-              <label>
-                <input type="checkbox" name="wensen[]" value="<?= $wens['idKlantenwensen'] ?>">
-                <?= htmlspecialchars($wens['klantenwens']) ?>
-              </label>
-            <?php endforeach; ?>
-          </div>
-          
-          <h3>Allergieën</h3>
-          <div id="allergieTags"></div>
-          <input type="hidden" name="allergieën" id="allergieënInput">
-
-          <div class="button-group">
-            <button type="button" data-allergie="Gluten">+ Gluten</button>
-            <button type="button" data-allergie="Pinda's">+ Pinda's</button>
-            <button type="button" data-allergie="Schaaldieren">+ Schaaldieren</button>
-            <button type="button" id="customBtn">+ Andere...</button>
-          </div>
-
-          <div id="customInput" style="display:none;">
-            <input type="text" id="customAllergie" maxlength="100">
-            <button type="button" id="addCustom">Toevoegen</button>
-            <button type="button" id="cancelCustom">cancel</button>
-          </div>
-
-        </div>
-        <div class="actions">
-          <button type="button" class="btn-muted">Annuleren</button>
-          <button type="submit" class="btn-primary">Toevoegen</button>
-        </div>
-
-      </form>
-    </div>
-  </div>
-</div>
-
-        
+      </div>
     </main>
   </div>
-  <script src="script/klanten.js" defer></script>
-  <script src="script/nav.js" defer></script>
 
-  
-  
+  <div class="modal-overlay hidden" id="modalOverlay"></div>
+
+  <div class="modal hidden" id="clientDetailModal">
+    <div class="modal-header">
+      <h2 id="detailTitle">Familie Bakker</h2>
+      <div class="modal-header-actions">
+        <button class="btn-blue-outline" id="editClientBtn">Bewerken</button>
+        <button class="close-btn" data-close>&times;</button>
+      </div>
+    </div>
+
+    <div class="modal-body scroll-body">
+      <div class="info-section">
+        <h3>Basis Informatie</h3>
+        <div class="info-grid two">
+          <div>
+            <span class="label">Voornaam</span>
+            <p id="detailVoornaam">Jan</p>
+          </div>
+          <div>
+            <span class="label">Achternaam</span>
+            <p id="detailAchternaam">Bakker</p>
+          </div>
+          <div>
+            <span class="label">Adres</span>
+            <p id="detailAdres">Dorpsstraat 12</p>
+          </div>
+          <div>
+            <span class="label">Postcode</span>
+            <p id="detailPostcode">1234AB</p>
+          </div>
+          <div>
+            <span class="label">Woonplaats</span>
+            <p id="detailWoonplaats">Amsterdam</p>
+          </div>
+          <div>
+            <span class="label">Telefoonnummer</span>
+            <p id="detailTelefoon">06-12345678</p>
+          </div>
+          <div class="full">
+            <span class="label">E-mailadres</span>
+            <p id="detailEmail">bakker@example.nl</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h3>Gezinssamenstelling</h3>
+        <div class="stats-grid">
+          <div>
+            <span class="label">Volwassenen (&gt;18 jaar)</span>
+            <p id="detailAdults">2</p>
+          </div>
+          <div>
+            <span class="label">Kinderen (&gt;2 jaar)</span>
+            <p id="detailChildren">2</p>
+          </div>
+          <div>
+            <span class="label">Baby's (&le;2 jaar)</span>
+            <p id="detailBabies">0</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h3>Wensen en Beperkingen</h3>
+        <div class="stack-info">
+          <div>
+            <span class="label">Dieetwensen</span>
+            <p id="detailDiet">Geen dieetwensen</p>
+          </div>
+          <div>
+            <span class="label">Allergieën</span>
+            <p id="detailAllergy">Geen allergieën</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h3>Voedselpakketten</h3>
+        <div class="stack-info">
+          <div>
+            <span class="label">Totaal aantal pakketten</span>
+            <p id="detailPackages">0</p>
+          </div>
+          <div>
+            <span class="label">Laatst samengesteld</span>
+            <p class="status-warning" id="detailLastPackage">Nog geen pakket</p>
+          </div>
+          <div>
+            <span class="label">Status</span>
+            <p><span id="detailStatus"></span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer between">
+      <button class="btn-green hidden" id="approveClientBtn">✓ Goedkeuren</button>
+      <button class="btn-red" id="deleteClientBtn">🗑 Verwijderen</button>
+    </div>
+  </div>
+
+  <div class="modal hidden modal-medium" id="packageModal">
+    <div class="modal-header">
+      <div>
+        <h2>Nieuw Pakket Samenstellen</h2>
+        <p class="subtext" id="packageForText"></p>
+      </div>
+      <button class="close-btn" data-close>&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="info-section">
+        <h3>Klant Informatie</h3>
+
+        <div class="info-grid two">
+          <div class="mini-box">
+            <span class="label">Gezinssamenstelling</span>
+            <div class="mini-stats">
+              <div><strong id="packageAdults">2</strong><span>Volwassenen</span></div>
+              <div><strong id="packageChildren">2</strong><span>Kinderen</span></div>
+              <div><strong id="packageBabies">0</strong><span>Baby's</span></div>
+            </div>
+          </div>
+
+          <div class="mini-box">
+            <span class="label">Dieetwensen</span>
+            <p id="packageDiet">Geen beperkingen</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h3>Voeg Producten Toe</h3>
+        <div class="form-group">
+          <label>Selecteer Product</label>
+          <select id="productSelect">
+            <option value="">-- Kies een product --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Aantal</label>
+          <div class="quantity-row">
+            <button type="button" class="qty-btn" id="minusQty">-</button>
+            <input type="text" id="qtyInput" value="1" readonly />
+            <button type="button" class="qty-btn" id="plusQty">+</button>
+            <button type="button" class="btn-green wide-btn" id="addProductBtn">Product Toevoegen</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h3>Toegevoegde Producten (<span id="productCount">0</span>)</h3>
+        <div id="productList" class="empty-products">
+          Nog geen producten toegevoegd. Selecteer hierboven een product.
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer right">
+      <button class="btn-light" data-close>Annuleren</button>
+      <button class="btn-green-light" id="savePackageBtn">Pakket Samenstellen</button>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="newClientModal">
+    <div class="modal-header">
+      <h2 id="clientModalTitle">Nieuwe Klant</h2>
+      <button class="close-btn" data-close>&times;</button>
+    </div>
+
+    <div class="modal-body scroll-body">
+      <div class="info-section">
+        <h3>Basis Informatie</h3>
+
+        <div class="form-grid two">
+          <div class="form-group">
+            <label>Voornaam *</label>
+            <input type="text" id="voornaam" name="voornaam" placeholder="Voornaam" required/>
+          </div>
+
+          <div class="form-group">
+            <label>Achternaam *</label>
+            <input type="text" id="achternaam" name="achternaam" placeholder="Achternaam" maxlength="50" required />
+          </div>
+
+          <div class="form-group">
+            <label>Adres *</label>
+            <input type="text" id="adres" name="adres" placeholder="Adres" maxlength="100" required/>
+          </div>
+
+          <div class="form-group">
+            <label>Postcode *</label>
+            <input type="text" id="postcode" name="postcode" placeholder="Postcode" maxlength="10" required/>
+          </div>
+
+          <div class="form-group">
+            <label>Woonplaats *</label>
+            <input type="text" id="woonplaats" name="woonplaats" placeholder="Woonplaats" maxlength="50" required/>
+          </div>
+
+          <div class="form-group">
+            <label>Telefoonnummer *</label>
+            <input type="text" id="telefoonnummer" name="telefoonnummer" placeholder="Telefoon" maxlength="20" required/>
+          </div>
+
+          <div class="form-group full">
+            <label>E-mailadres *</label>
+            <input type="email" id="email" name="email" placeholder="Email" maxlength="200" required/>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h3>Gezinssamenstelling</h3>
+
+        <div class="form-grid three">
+          <div class="form-group">
+            <label>Aantal Volwassenen (&gt;18 jaar)</label>
+            <input type="number" id="volwassenen" min="0" value="0" name="volwassenen"/>
+          </div>
+
+          <div class="form-group">
+            <label>Aantal Kinderen (&gt;2 jaar)</label>
+            <input type="number" id="kinderen" min="0" value="0" name="kinderen"/>
+          </div>
+
+          <div class="form-group">
+            <label>Aantal Baby's (&le;2 jaar)</label>
+            <input type="number" id="babies" min="0" value="0" name="babies"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h3>Wensen en Beperkingen</h3>
+
+        <div class="form-group">
+          <label>Dieetwensen</label>
+          <div class="checkbox-row">
+            <?php foreach ($opgeslagenWensen as $wens): ?>
+            <label class="check-item"><input  type="checkbox" value="<?= $wens['idKlantenwensen'] ?>" name="wensen[]"/> <?= htmlspecialchars($wens['klantenwens']) ?></label>
+            <?php endforeach; ?>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Allergieën</label>
+          <label class="check-item"><input type="checkbox" id="hasAllergy"/> Heeft de klant allergieën?</label>
+
+          <div id="allergyContainer" class="hidden">
+            <input type="text" id="allergyInput" placeholder="Bijv: pinda, gluten, lactose" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer right">
+      <button class="btn-light" data-close>Annuleren</button>
+      <button class="btn-green" id="saveClientBtn">Toevoegen</button>
+    </div>
+  </div>
+
+  <script src="script/klanten.js"></script>
 </body>
 </html>
