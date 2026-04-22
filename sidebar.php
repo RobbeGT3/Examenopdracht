@@ -47,7 +47,7 @@
       <?php endif; ?>
           
       <?php if ( $_SESSION['userrole'] === 'Directie'): ?>
-      <a href="klanten2.php" class="menu-btn <?= ($currentPage == 'klanten2.php') ? 'active' : '' ?>" data-page="klanten">
+      <a href="klanten.php" class="menu-btn <?= ($currentPage == 'klanten.php') ? 'active' : '' ?>" data-page="klanten">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
           <circle cx="9.5" cy="7" r="4"></circle>
