@@ -27,6 +27,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const familySearch = document.getElementById("familySearch");
     const productSearch = document.getElementById("productSearch");
 
+    const searchInput = document.getElementById("searchInput");
+
     const clientInfoBox = document.getElementById("clientInfoBox");
     const productStepBox = document.getElementById("productStepBox");
     const selectedProductsBox = document.getElementById("selectedProductsBox");
@@ -69,6 +71,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         renderSelected();
     }
+
+    searchInput.addEventListener("input", function () {
+        const searchTerm = this.value.toLowerCase();
+
+        filterPakketten(searchTerm);
+    });
 
     openModalBtn?.addEventListener("click", openModal);
     closeModalBtn?.addEventListener("click", closeModal);
@@ -194,20 +202,30 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function renderPakketten() {
+    document.getElementById("searchInput").addEventListener("input", function () {
+        const query = this.value.toLowerCase();
+
+        const filtered = pakketten.filter(p =>
+            p.gezinsnaam.toLowerCase().includes(query)
+        );
+
+        renderPakketten(filtered);
+    });
+
+    function renderPakketten(list = pakketten) {
         const container = document.getElementById("pakketList");
         const emptyState = document.getElementById("emptyState");
 
         container.innerHTML = "";
 
-        if (pakketten.length === 0) {
+        if (!list || list.length === 0) {
             emptyState.style.display = "block";
             return;
         }
 
         emptyState.style.display = "none";
 
-        pakketten.forEach((p, index) => {
+        list.forEach((p) => {
             const div = document.createElement("div");
 
             div.className = "package-card";
