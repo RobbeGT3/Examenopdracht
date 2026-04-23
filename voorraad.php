@@ -1,8 +1,8 @@
 <?php
 session_start();
-if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
-    die("Page not available");
-}
+// if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
+//     die("Page not available");
+// }
 
 
 $currentPage = basename($_SERVER['PHP_SELF']);
@@ -69,10 +69,10 @@ $categories = $resultCat->fetch_all(MYSQLI_ASSOC);
                 <table class="inventory-table">
                     <thead>
                         <tr>
-                            <th>EAN-nummer</th>
-                            <th>Productnaam</th>
-                            <th>Categorie</th>
-                            <th>Aantal</th>
+                            <th onclick="sortTable(0)">EAN-nummer <i class="fas sort-icon"></i></th>
+                            <th onclick="sortTable(1)">Productnaam  <i class="fas sort-icon"></i></th>
+                            <th onclick="sortTable(2)">Categorie <i class="fas sort-icon"></i></th>
+                            <th onclick="sortTable(3)">Aantal <i class="fas sort-icon"></th>
                             <th>Acties</th>
                         </tr>
                     </thead>
@@ -140,7 +140,7 @@ $categories = $resultCat->fetch_all(MYSQLI_ASSOC);
                                 </option>
                             <?php endforeach; ?>
 
-                            <option value="overig">Overig</option>
+                            <option value="overig">Anders namelijk...</option>
                         </select>
                         
                         <div id="new-category-container" class="new-category-container" style="display: none;">
@@ -206,7 +206,7 @@ $categories = $resultCat->fetch_all(MYSQLI_ASSOC);
                                 </option>
                             <?php endforeach; ?>
 
-                            <option value="overig">Overig</option>
+                            <option value="overig">Anders namelijk...</option>
                         </select>
                         
                         <div id="edit-new-category-container" class="new-category-container" style="display: none;">
@@ -214,7 +214,7 @@ $categories = $resultCat->fetch_all(MYSQLI_ASSOC);
                             <div class="new-category-buttons">
                                 <button type="button" class="btn-add-category" onclick="addEditNewCategory()">Toevoegen</button>
                                 <button type="button" class="btn-cancel-category" onclick="cancelEditNewCategory()">Annuleren</button>
-                                <input type="hidden" id="is-new-category" value="0">
+                                <input type="hidden" id="edit-is-new-category" value="0">
                             </div>
                         </div>
                     </div>
