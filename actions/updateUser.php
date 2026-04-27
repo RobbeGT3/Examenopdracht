@@ -5,7 +5,7 @@ require_once  __DIR__. '/../common/dbconnection.php';
 
 header('Content-Type: application/json');
 
-// Get form data
+// Haal formuliergegevens op
 $originalUsername = $_POST['originalUsername'] ?? '';
 $newUsername = $_POST['username'] ?? '';
 $email = $_POST['email'] ?? '';
@@ -17,7 +17,7 @@ if (empty($originalUsername)) {
     exit;
 }
 
-// Map role to database ID
+// Rol toewijzen aan database ID
 $roleMapping = [
     'directeur' => 1,
     'magazijnmedewerker' => 2,
@@ -31,7 +31,7 @@ if ($roleId === null) {
     exit;
 }
 
-// Fetch current user data
+// Huidige gebruikersgegevens ophalen
 $stmt = $conn->prepare("SELECT username, email, Gebruikerrollen_idGebruikerrollen FROM Gebruiker WHERE username = ?");
 $stmt->bind_param("s", $originalUsername);
 $stmt->execute();
@@ -44,33 +44,33 @@ if (!$currentUser) {
     exit;
 }
 
-// Track which fields changed
+// Bijhouden welke velden gewijzigd zijn
 $updates = [];
 $types = "";
 $values = [];
 
-// Check if username changed
+// Controleer of gebruikersnaam gewijzigd is
 if ($newUsername !== $currentUser['username']) {
     $updates[] = "username = ?";
     $types .= "s";
     $values[] = $newUsername;
 }
 
-// Check if email changed
+// Controleer of e-mail gewijzigd is
 if ($email !== $currentUser['email']) {
     $updates[] = "email = ?";
     $types .= "s";
     $values[] = $email;
 }
 
-// Check if role changed
+// Controleer of rol gewijzigd is
 if ($roleId != $currentUser['Gebruikerrollen_idGebruikerrollen']) {
     $updates[] = "Gebruikerrollen_idGebruikerrollen = ?";
     $types .= "i";
     $values[] = $roleId;
 }
 
-// Check if password should be updated (only if not empty)
+// Controleer of wachtwoord geüpdatet moet worden (alleen als niet leeg)
 if (!empty($wachtwoord)) {
     $salt = "9Q3z8T";
     $saltedWachtwoord = $wachtwoord.$salt;
@@ -81,13 +81,13 @@ if (!empty($wachtwoord)) {
     $values[] = $hashedPassword;
 }
 
-// If no fields changed, return success without doing anything
+// Als er geen velden gewijzigd zijn, geef succes terug zonder actie
 if (empty($updates)) {
     echo json_encode(['success' => true, 'message' => 'Geen wijzigingen doorgevoerd', 'changed' => false]);
     exit;
 }
 
-// Build and execute update query
+// Update query bouwen en uitvoeren
 $query = "UPDATE Gebruiker SET " . implode(", ", $updates) . " WHERE username = ?";
 $types .= "s";
 $values[] = $originalUsername;

@@ -143,8 +143,28 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        alert(`Wachtwoord voor ${username} is succesvol gewijzigd!`);
-        closePasswordModal();
+        // Send data to backend
+        const formData = new FormData();
+        formData.append('username', username);
+        formData.append('newPassword', newPassword);
+
+        fetch('actions/changePassword.php', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Wachtwoord succesvol gewijzigd!');
+                    closePasswordModal();
+                } else {
+                    alert('Er is een fout opgetreden: ' + (data.message || 'Onbekende fout'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Er is een fout opgetreden bij het wijzigen van het wachtwoord.');
+            });
     });
 
     // Close modal when pressing Escape key
@@ -361,14 +381,32 @@ document.addEventListener('DOMContentLoaded', function () {
         const deleteBtn = newRow.querySelector('.delete');
         const passwordBtn = newRow.querySelector('.password');
         const statusCell = newRow.querySelector('.status-cell');
-
         editBtn.addEventListener('click', function () {
             openEditModal(newRow);
         });
 
         deleteBtn.addEventListener('click', function () {
             if (confirm(`Gebruiker "${username}" verwijderen?`)) {
-                newRow.remove();
+                const formData = new FormData();
+                formData.append('username', username);
+
+                fetch('actions/deleteUser.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Gebruiker succesvol verwijderd!');
+                            newRow.remove();
+                        } else {
+                            alert('Er is een fout opgetreden: ' + (data.message || 'Onbekende fout'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Er is een fout opgetreden bij het verwijderen van de gebruiker.');
+                    });
             }
         });
 
@@ -417,7 +455,27 @@ document.addEventListener('DOMContentLoaded', function () {
             const row = this.closest('tr');
             const username = row.cells[0].textContent;
             if (confirm(`Gebruiker "${username}" verwijderen?`)) {
-                row.remove();
+                // Send data to backend
+                const formData = new FormData();
+                formData.append('username', username);
+
+                fetch('actions/deleteUser.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Gebruiker succesvol verwijderd!');
+                            row.remove();
+                        } else {
+                            alert('Er is een fout opgetreden: ' + (data.message || 'Onbekende fout'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Er is een fout opgetreden bij het verwijderen van de gebruiker.');
+                    });
             }
         });
     });
