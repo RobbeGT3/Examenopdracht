@@ -11,14 +11,21 @@ document.addEventListener("DOMContentLoaded", function () {
     let qty = 1;
     const qtyInput = document.getElementById("qtyInput");
     document.getElementById("plusBtn").addEventListener("click", () => {
-        qty++;
-        qtyInput.value = qty;
+
+        const remaining = getRemainingStock();
+
+        if (qty < remaining) {
+            qty++;
+            qtyInput.value = qty;
+            updateQtyButtons();
+        }
     });
 
     document.getElementById("minusBtn").addEventListener("click", () => {
         if (qty > 1) {
             qty--;
             qtyInput.value = qty;
+            updateQtyButtons();
         }
     });
     const familyOptions = document.getElementById("familyOptions");
@@ -97,9 +104,6 @@ document.addEventListener("DOMContentLoaded", function () {
         families = {};
 
         data.forEach(k => {
-            // const label = `Familie ${k.achternaam}`;
-            // const key = `${label} - ${k.postcode}`;
-
             const key = `${k.gezinsnaam}`;
 
             families[key] = {
@@ -194,6 +198,11 @@ document.addEventListener("DOMContentLoaded", function () {
             div.addEventListener("click", () => {
                 selectedProduct = p;
                 productSearch.value = `${p.productnaam} (${p.product_categorie})`;
+
+                qty = 1;
+                qtyInput.value = 1;
+
+                updateQtyButtons();
 
                 productOptions.classList.add("hidden");
             });
@@ -346,6 +355,37 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    function getRemainingStock() {
+        if (!selectedProduct) return 0;
+
+        const existing = selectedProducts.find(p => p.id === selectedProduct.idProducts);
+
+        const alreadySelected = existing ? existing.amount : 0;
+
+        return selectedProduct.aantal - alreadySelected;
+    }
+
+    function updateQtyButtons() {
+        const remaining = getRemainingStock();
+        const plusBtn = document.getElementById("plusBtn");
+        const minusBtn = document.getElementById("minusBtn");
+
+        if (qty >= remaining) {
+            plusBtn.disabled = true;
+            plusBtn.style.opacity = "0.5";
+        } else {
+            plusBtn.disabled = false;
+            plusBtn.style.opacity = "1";
+        }
+        if (qty <= 1) {
+            minusBtn.disabled = true;
+            minusBtn.style.opacity = "0.5";
+        } else {
+            minusBtn.disabled = false;
+            minusBtn.style.opacity = "1";
+        }
+    }
+
     window.removeProduct = function (i) {
         selectedProducts.splice(i, 1);
         renderSelected();
@@ -365,7 +405,6 @@ document.addEventListener("DOMContentLoaded", function () {
             body: JSON.stringify({
                 klantId: family.id,
                 producten: selectedProducts,
-                // add: TRUE
             })
         });
 
