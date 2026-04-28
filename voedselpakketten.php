@@ -33,7 +33,7 @@ require_once  __DIR__. '/common/dbconnection.php';
         <div class="search-container">
             <div class="search-bar">
                 <i class="fas fa-search"></i>
-                <input type="text" id="searchInput" placeholder="Zoek op familienaam...">
+                <input type="text" id="searchInput" placeholder="Zoek op gezinsnaam...">
             </div>
         </div>
 
