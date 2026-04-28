@@ -1,6 +1,14 @@
 <?php
 session_start();
 $currentPage = basename($_SERVER['PHP_SELF']);
+require_once __DIR__ . '/common/dbconnection.php';
+
+$stmt = $conn->prepare("SELECT * FROM Leverancier ORDER BY bedrijfsnaam ASC;");
+$stmt->execute();
+$result = $stmt->get_result();
+$leveranciers = $result->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="nl">
@@ -205,95 +213,86 @@ tbody tr:hover {
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td>Albert Heijn</td>
-          <td>Jan de Vries</td>
-          <td>jan@ah.nl</td>
-          <td>020-1234567</td>
-          <td>28-3-2026, 10:00</td>
-          <td>Wekelijks</td>
+        <?php foreach ($leveranciers as $lev): ?>
+        <tr data-id="<?= $lev['idLeverancier'] ?>" data-adres="<?= htmlspecialchars($lev['adres'] ?? '') ?>">
+          <td><?= htmlspecialchars($lev['bedrijfsnaam']) ?></td>
+          <td><?= htmlspecialchars($lev['contactpersoon']) ?></td>
+          <td><?= htmlspecialchars($lev['email']) ?></td>
+          <td><?= htmlspecialchars($lev['telefoon']) ?></td>
+          <td><?= htmlspecialchars($lev['volgende_levering']) ?></td>
+          <td><?= htmlspecialchars($lev['leverfrequentie']) ?></td>
           <td class="actions">
-            <span class="edit"></span>
-            <span class="delete"></span>
+            <button class="btn-edit-lev" data-id="<?= $lev['idLeverancier'] ?>">✏️</button>
+            <button class="btn-delete-lev" data-id="<?= $lev['idLeverancier'] ?>">🗑️</button>
           </td>
         </tr>
-
-        <tr>
-          <td>Jumbo</td>
-          <td>Maria Jansen</td>
-          <td>maria@jumbo.nl</td>
-          <td>030-9876543</td>
-          <td>30-3-2026, 14:00</td>
-          <td>Maandelijks</td>
-          <td class="actions">
-            <span class="edit"></span>
-            <span class="delete"></span>
-          </td>
-        </tr>
+        <?php endforeach; ?>
       </tbody>
     </table>
   </div>
 
 </div>
 
-<!-- MODAL -->
+<!-- Nieuwe Leverancier Modal -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
 
     <div class="modal-header">
-      <h3>Nieuwe Leverancier</h3>
+      <h3 id="modalTitle">Nieuwe Leverancier</h3>
       <span class="close" id="closeModal">&times;</span>
     </div>
 
-    <form>
+    <form id="leverancierForm">
+      <input type="hidden" id="leverancierId">
       <div class="form-row">
         <div class="form-group">
           <label>Bedrijfsnaam *</label>
-          <input type="text" id="bedrijf">
+          <input type="text" id="bedrijf" required>
         </div>
 
         <div class="form-group">
           <label>Adres *</label>
-          <input type="text" id="adres">
+          <input type="text" id="adres" required>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label>Naam Contactpersoon *</label>
-          <input type="text" id="contact">
+          <input type="text" id="contact" required>
         </div>
 
         <div class="form-group">
           <label>E-mailadres *</label>
-          <input type="email" id="email">
+          <input type="email" id="email" required>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label>Telefoonnummer *</label>
-          <input type="text" id="telefoon">
+          <input type="text" id="telefoon" required>
         </div>
 
         <div class="form-group">
           <label>Eerstvolgende Levering *</label>
-          <input type="datetime-local" id="levering">
+          <input type="datetime-local" id="levering" required>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label>Leverfrequentie *</label>
-          <select id="frequentie">
+          <select id="frequentie" required>
             <option value="dagelijks">Dagelijks</option>
             <option value="wekelijks">Wekelijks</option>
             <option value="maandelijks">Maandelijks</option>
           </select>
         </div>
       </div>
+      <div class="modal-actions">
         <button type="button" class="btn-cancel" id="cancelModal">Annuleren</button>
-        <button type="submit" class="btn-save">Toevoegen</button>
+        <button type="submit" class="btn-save" id="submitBtn">Toevoegen</button>
       </div>
     </form>
 
@@ -302,7 +301,19 @@ tbody tr:hover {
 
 <script>
 const modal = document.getElementById("modal");
-document.getElementById("openModal").onclick = () => modal.style.display = "flex";
+const form = document.getElementById('leverancierForm');
+let isEditMode = false;
+
+// Open modal voor nieuwe leverancier
+document.getElementById("openModal").onclick = () => {
+  isEditMode = false;
+  document.getElementById('modalTitle').textContent = 'Nieuwe Leverancier';
+  document.getElementById('submitBtn').textContent = 'Toevoegen';
+  document.getElementById('leverancierId').value = '';
+  form.reset();
+  modal.style.display = "flex";
+};
+
 document.getElementById("closeModal").onclick = () => modal.style.display = "none";
 document.getElementById("cancelModal").onclick = () => modal.style.display = "none";
 
@@ -313,45 +324,84 @@ window.onclick = (e) => {
 };
 
 // Form submit handler
-const form = document.querySelector('form');
 form.addEventListener('submit', (e) => {
   e.preventDefault();
-  const leverancier = {
-    bedrijf: document.getElementById('bedrijf').value,
+
+  const data = {
+    id: document.getElementById('leverancierId').value || null,
+    bedrijfsnaam: document.getElementById('bedrijf').value,
     adres: document.getElementById('adres').value,
-    contact: document.getElementById('contact').value,
+    contactpersoon: document.getElementById('contact').value,
     email: document.getElementById('email').value,
     telefoon: document.getElementById('telefoon').value,
-    levering: document.getElementById('levering').value,
-    frequentie: document.getElementById('frequentie').value
+    volgende_levering: document.getElementById('levering').value,
+    leverfrequentie: document.getElementById('frequentie').value
   };
-  let leveranciers = JSON.parse(localStorage.getItem('leveranciers')) || [];
-  leveranciers.push(leverancier);
-  localStorage.setItem('leveranciers', JSON.stringify(leveranciers));
-  addRowToTable(leverancier);
-  modal.style.display = 'none';
-  form.reset();
+
+  const url = isEditMode ? 'actions/updateLeverancier.php' : 'actions/createLeverancier.php';
+
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  .then(() => {
+    modal.style.display = 'none';
+    location.reload();
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Er is een fout opgetreden.');
+  });
 });
 
-function addRowToTable(lev) {
-  const tbody = document.querySelector('tbody');
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td>${lev.bedrijf}</td>
-    <td>${lev.contact}</td>
-    <td>${lev.email}</td>
-    <td>${lev.telefoon}</td>
-    <td>${lev.levering}</td>
-    <td>${lev.frequentie}</td>
-    <td class="actions"><span class="edit"></span><span class="delete"></span></td>
-  `;
-  tbody.appendChild(tr);
-}
+// Bewerken
+document.querySelectorAll('.btn-edit-lev').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const row = this.closest('tr');
+    const id = this.dataset.id;
 
-// Load saved leveranciers on page load
-window.addEventListener('load', () => {
-  const leveranciers = JSON.parse(localStorage.getItem('leveranciers')) || [];
-  leveranciers.forEach(addRowToTable);
+    isEditMode = true;
+    document.getElementById('modalTitle').textContent = 'Leverancier Bewerken';
+    document.getElementById('submitBtn').textContent = 'Bijwerken';
+    document.getElementById('leverancierId').value = id;
+
+    // Vul formulier met huidige data
+    const cells = row.querySelectorAll('td');
+    document.getElementById('bedrijf').value = cells[0].textContent;
+    document.getElementById('contact').value = cells[1].textContent;
+    document.getElementById('email').value = cells[2].textContent;
+    document.getElementById('telefoon').value = cells[3].textContent;
+    document.getElementById('levering').value = cells[4].textContent.replace(' ', 'T');
+    document.getElementById('frequentie').value = cells[5].textContent.toLowerCase();
+
+    // Adres ophalen uit data-attribuut of hidden field
+    document.getElementById('adres').value = row.dataset.adres || '';
+
+    modal.style.display = "flex";
+  });
+});
+
+// Verwijderen
+document.querySelectorAll('.btn-delete-lev').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const id = this.dataset.id;
+    const row = this.closest('tr');
+    const naam = row.querySelector('td').textContent;
+
+    if (!confirm(`Weet je zeker dat je leverancier "${naam}" wilt verwijderen?`)) return;
+
+    fetch('actions/deleteLeverancier.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id })
+    })
+    .then(() => location.reload())
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Er is een fout opgetreden bij het verwijderen.');
+    });
+  });
 });
 </script>
 
