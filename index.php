@@ -52,6 +52,9 @@
         </div>
 
         <button type="submit" class="login-btn">Inloggen</button>
+        <div class="forgot-password">
+          <a href="forgot-password.php">Wachtwoord vergeten?</a>
+        </div>
       </form>
     </section>
   </main>
