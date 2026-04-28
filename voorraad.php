@@ -8,12 +8,12 @@ session_start();
 $currentPage = basename($_SERVER['PHP_SELF']);
 require_once  __DIR__. '/common/dbconnection.php';
 
-// $stmt1 = $conn->prepare("SELECT p.idProducts, p.`EAN-nummer`, p.productnaam, p.aantal, p.eenheid, p.ontvangst_datum, c.product_categorie FROM Products p INNER JOIN Categories c ON p.Categories_idCategories = c.idCategories;");
 $stmt1 = $conn->prepare("SELECT 
         p.idProducts, 
         p.`EAN-nummer`, 
         p.productnaam, 
         p.aantal, 
+        c.idCategories,
         c.product_categorie,
 
         EXISTS (
@@ -85,7 +85,7 @@ $categories = $resultCat->fetch_all(MYSQLI_ASSOC);
                                 </div>
                             </td>
                             <td><?= htmlspecialchars($row['productnaam']) ?></td>
-                            <td><?= htmlspecialchars($row['product_categorie']) ?></td>
+                            <td data-category-id="<?= $row['idCategories'] ?>"><?= htmlspecialchars($row['product_categorie']) ?></td>
                             <td><span class="quantity-badge"><?= htmlspecialchars($row['aantal']) ?></span></td>
                             <td>
                                 <div class="actions">

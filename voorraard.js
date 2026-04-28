@@ -42,7 +42,7 @@ document.getElementById('edit-product-id').value = productId;
     const cells = row.getElementsByTagName('td');
     const eanNummer = cells[0].textContent.trim();
     const productnaam = cells[1].textContent.trim();
-    const categorie = cells[2].textContent.trim();
+    const categoryId = cells[2].dataset.categoryId;
     const aantal = cells[3].textContent.trim();
 
     // Vul bewerkingsformulier
@@ -53,30 +53,12 @@ document.getElementById('edit-product-id').value = productId;
 
     // Stel categorie in
     const categorySelect = document.getElementById('edit-categorie');
-    const options = categorySelect.options;
-    let categoryFound = false;
-
-    for (let i = 0; i < options.length; i++) {
-        if (options[i].textContent === categorie) {
-            categorySelect.selectedIndex = i;
-            categoryFound = true;
-            break;
-        }
-    }
-
-    // Als categorie niet gevonden in dropdown, voeg deze toe
-    if (!categoryFound && categorie) {
-        const newOption = document.createElement('option');
-        newOption.value = categorie.toLowerCase().replace(/\s+/g, '-');
-        newOption.textContent = categorie;
-        newOption.selected = true;
-        categorySelect.appendChild(newOption);
-    }
+    categorySelect.value = categoryId;
 
     // Toon modal
     const modal = document.getElementById('productBewerkenModal');
     modal.classList.add('active');
-    document.body.style.overflow = 'hidden'; // Voorkom scrollen van achtergrond
+    document.body.style.overflow = 'hidden'; 
 }
 
 let currentSortedColumn = null;
@@ -135,9 +117,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function addEditButtonListeners() {
         const editButtons = document.querySelectorAll('.btn-edit');
         editButtons.forEach((button, index) => {
-            // button.addEventListener('click', function () {
-            //     openEditModal(index);
-            // });
             button.addEventListener('click', function () {
                 const productId = this.dataset.id;
                 openEditModal(index, productId);
@@ -285,8 +264,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const categorieSelect = document.getElementById('edit-categorie');
             const aantal = document.getElementById('edit-aantal').value;
 
-            const newCategoryContainer = document.getElementById('edit-new-category-container');
-            const isNewCategory = newCategoryContainer.style.display === 'block';
+            // const newCategoryContainer = document.getElementById('edit-new-category-container');
+            // const isNewCategory = newCategoryContainer.style.display === 'block';
+
+            const isNewCategory = document.getElementById('edit-is-new-category').value === "1";
             const newCategory = document.getElementById('edit-new-category').value.trim();
 
             // 🔴 Validatie
@@ -314,10 +295,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+
                     id: productId,
                     ean: eanNummer,
                     productnaam: productnaam,
-                    categorie_id: isNewCategory ? null : categorieSelect.value,
+                    categorie_id: (isNewCategory || categorieSelect.value === "overig")
+                        ? null
+                        : categorieSelect.value,
                     new_categorie: isNewCategory ? newCategory : null,
                     aantal: aantal
                 })
@@ -418,25 +402,6 @@ style.textContent = `
 document.head.appendChild(style);
 
 // Categorie functionaliteit
-// function handleCategoryChange() {
-//     const categorySelect = document.getElementById('categorie');
-//     const newCategoryContainer = document.getElementById('new-category-container');
-
-//     if (categorySelect.value === 'overig') {
-//         // Show new category input
-//         categorySelect.style.display = 'none';
-//         newCategoryContainer.style.display = 'block';
-
-//         // Focus on the new category input
-//         setTimeout(() => {
-//             document.getElementById('new-category').focus();
-//         }, 100);
-//     } else {
-//         // Hide new category input
-//         categorySelect.style.display = 'block';
-//         newCategoryContainer.style.display = 'none';
-//     }
-// }
 
 
 function handleCategoryChange() {
@@ -501,26 +466,6 @@ function cancelNewCategory() {
 }
 
 // Bewerk modal categorie functionaliteit
-// function handleEditCategoryChange() {
-//     const categorySelect = document.getElementById('edit-categorie');
-//     const newCategoryContainer = document.getElementById('edit-new-category-container');
-
-//     if (categorySelect.value === 'overig') {
-//         // Show new category input
-//         categorySelect.style.display = 'none';
-//         newCategoryContainer.style.display = 'block';
-
-//         // Focus on the new category input
-//         setTimeout(() => {
-//             document.getElementById('edit-new-category').focus();
-//         }, 100);
-//     } else {
-//         // Hide new category input
-//         categorySelect.style.display = 'block';
-//         newCategoryContainer.style.display = 'none';
-//     }
-// }
-
 function handleEditCategoryChange() {
     const categorySelect = document.getElementById('edit-categorie');
     const newCategoryContainer = document.getElementById('edit-new-category-container');
@@ -567,52 +512,6 @@ function addEditNewCategory() {
     newCategoryContainer.style.display = 'none';
 }
 
-function cancelNewCategory() {
-    document.getElementById('is-new-category').value = "0";
-
-    const categorySelect = document.getElementById('categorie');
-    const newCategoryContainer = document.getElementById('new-category-container');
-
-    categorySelect.value = "";
-
-    // 👉 UI herstellen
-    categorySelect.style.display = 'block';
-    newCategoryContainer.style.display = 'none';
-
-    document.getElementById('new-category').value = '';
-}
-
-// function addEditNewCategory() {
-//     const newCategoryInput = document.getElementById('edit-new-category');
-//     const categorySelect = document.getElementById('edit-categorie');
-//     const newCategoryContainer = document.getElementById('edit-new-category-container');
-
-//     const newCategoryValue = newCategoryInput.value.trim();
-
-//     if (!newCategoryValue) {
-//         alert('Voer een categorie in a.u.b.');
-//         newCategoryInput.focus();
-//         return;
-//     }
-
-//     // Add new option to the select dropdown
-//     const newOption = document.createElement('option');
-//     newOption.value = newCategoryValue.toLowerCase().replace(/\s+/g, '-');
-//     newOption.textContent = newCategoryValue;
-//     newOption.selected = true;
-
-//     // Insert before the "overig" option
-//     const overigOption = categorySelect.querySelector('option[value="overig"]');
-//     categorySelect.insertBefore(newOption, overigOption);
-
-//     // Show dropdown and hide input
-//     categorySelect.style.display = 'block';
-//     newCategoryContainer.style.display = 'none';
-
-//     // Clear the input
-//     newCategoryInput.value = '';
-// }
-
 function cancelEditNewCategory() {
     const categorySelect = document.getElementById('edit-categorie');
     const newCategoryContainer = document.getElementById('edit-new-category-container');
@@ -628,26 +527,6 @@ function cancelEditNewCategory() {
     // Clear the input
     newCategoryInput.value = '';
 }
-
-// Functie om product bij te werken in tabel
-// function updateProductInTable(rowIndex, eanNummer, productnaam, categorie, aantal) {
-//     const table = document.querySelector('.inventory-table tbody');
-//     const rows = table.getElementsByTagName('tr');
-//     const row = rows[rowIndex];
-
-//     if (!row) return;
-
-//     // Werk cellen bij
-//     const cells = row.getElementsByTagName('td');
-//     cells[0].innerHTML = `<div class="ean-cell">${eanNummer}</div>`;
-//     cells[1].textContent = productnaam;
-//     cells[2].textContent = categorie;
-//     cells[3].innerHTML = `<span class="quantity-badge">${aantal}</span>`;
-
-//     // Show success message
-//     showNotification('Product succesvol bijgewerkt!');
-// }
-
 // Functie om product te verwijderen uit tabel
 
 function deleteProduct(productId, productnaam) {
