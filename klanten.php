@@ -60,11 +60,11 @@ $opgeslagenWensen = $result2->fetch_all(MYSQLI_ASSOC);
 
             <div class="toolbar-field">
               <label>Sorteren op</label>
-              <select>
-                <option>Samenstelling (oud naar nieuw)</option>
-                <option>Samenstelling (nieuw naar oud)</option>
-                <option>Familienaam A-Z</option>
-                <option>Familienaam Z-A</option>
+              <select id="sortSelect">
+                <option value="date_old">Samenstelling (oud naar nieuw)</option>
+                <option value="date_new">Samenstelling (nieuw naar oud)</option>
+                <option value="name_az">Familienaam A-Z</option>
+                <option value="name_za">Familienaam Z-A</option>
               </select>
             </div>
           </div>

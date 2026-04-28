@@ -7,7 +7,6 @@ $rawData = file_get_contents("php://input");
 
 $data = json_decode($rawData, true);
 
-// file_put_contents('klanten2.txt', $rawData, FILE_APPEND);
 $voornaam = $data['voornaam'];
 $achternaam = $data['achternaam'];
 $gezinsnaam = 'Familie '. $achternaam;
@@ -25,7 +24,7 @@ $registratieDatum = date('Y-m-d');
 $stmt = $conn->prepare("
 INSERT INTO Klanten 
 (voornaam, achternaam, gezinsnaam,  adres, postcode, woonplaats, telefoonnummer, `e-mailadres`, aantal_volwassen, aantal_kinderen, aantal_babies,`status`,registratie_datum)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Inactief', ?)
 ");
 
 $stmt->bind_param(
