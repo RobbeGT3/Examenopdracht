@@ -33,6 +33,12 @@ $stmtCat = $conn->prepare("SELECT c.idCategories, c.product_categorie FROM Categ
 $stmtCat->execute();
 $resultCat = $stmtCat->get_result();
 $categories = $resultCat->fetch_all(MYSQLI_ASSOC);
+
+// Haal het totaal aantal producten per categorie op
+$stmtCatAantal = $conn->prepare("SELECT c.product_categorie, SUM(p.aantal) as totaal_aantal FROM Products p INNER JOIN Categories c ON p.Categories_idCategories = c.idCategories GROUP BY c.product_categorie ORDER BY c.product_categorie ASC;");
+$stmtCatAantal->execute();
+$resultCatAantal = $stmtCatAantal->get_result();
+$categorieAantallen = $resultCatAantal->fetch_all(MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="nl">
@@ -57,6 +63,20 @@ $categories = $resultCat->fetch_all(MYSQLI_ASSOC);
                     Nieuw Product
                 </button>
             </header>
+
+            <!-- Categorie Overzicht -->
+            <div class="category-overview">
+                <h2>Aantal producten per categorie</h2>
+                <div class="category-cards">
+                    <?php foreach ($categorieAantallen as $cat): ?>
+                    <div class="category-card">
+                        <div class="category-name"><?= htmlspecialchars($cat['product_categorie']) ?></div>
+                        <div class="category-count"><?= $cat['totaal_aantal'] ?></div>
+                        <div class="category-label">producten</div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
 
             <div class="search-container">
                 <div class="search-bar">
