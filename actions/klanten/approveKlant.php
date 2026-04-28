@@ -7,7 +7,7 @@ $rawData = file_get_contents("php://input");
 $data = json_decode($rawData, true);
 $id = $data['id'];
 
-$stmt1 = $conn->prepare("UPDATE Klanten k SET k.`status` = 'Goedgekeurd' WHERE idKlanten = ?");
+$stmt1 = $conn->prepare("UPDATE Klanten k SET k.`status` = 'Actief' WHERE idKlanten = ?");
 $stmt1->bind_param("i", $id);
 $stmt1->execute();
 

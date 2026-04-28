@@ -7,7 +7,7 @@ async function loadKlanten() {
   const res = await fetch("/actions/klanten/getKlanten.php");
   clients = await res.json();
 
-  renderTable();
+  applyFiltersAndSort();
 }
 
 
@@ -137,64 +137,11 @@ const savePackageBtn = document.getElementById("savePackageBtn");
 
 
 const editClientBtn = document.getElementById("editClientBtn");
-
 editClientBtn.addEventListener("click", () => {
   openEditClientModal(currentClient);
 });
 
 const saveClientBtn = document.getElementById("saveClientBtn");
-// saveClientBtn.addEventListener("click", async () => {
-
-//   const data = {
-//     voornaam: document.getElementById("voornaam").value.trim(),
-//     achternaam: document.getElementById("achternaam").value.trim(),
-//     adres: document.getElementById("adres").value.trim(),
-//     postcode: document.getElementById("postcode").value.trim(),
-//     woonplaats: document.getElementById("woonplaats").value.trim(),
-//     telefoon: document.getElementById("telefoonnummer").value.trim(),
-//     email: document.getElementById("email").value.trim(),
-//     volwassenen: document.getElementById("volwassenen").value,
-//     kinderen: document.getElementById("kinderen").value,
-//     babies: document.getElementById("babies").value,
-//     wensen: Array.from(document.querySelectorAll('input[name="wensen[]"]:checked'))
-//                   .map(cb => cb.value),
-//     allergieen: getAllergies()
-//   };
-
-//   if (
-//     !data.voornaam ||
-//     !data.achternaam ||
-//     !data.adres ||
-//     !data.postcode ||
-//     !data.woonplaats ||
-//     !data.telefoon ||
-//     !data.email
-//   ) {
-//     alert("Vul alle verplichte velden in.");
-//     return;
-//   }
-
-//   await fetch("/actions/klanten/createKlant.php", {
-//     method: "POST",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify({
-//       voornaam: data.voornaam,
-//       achternaam: data.achternaam,
-//       gezinsnaam: data.gezinsnaam,
-//       adres: data.adres,
-//       postcode: data.postcode,
-//       woonplaats: data.woonplaats,
-//       telefoon: data.telefoon,
-//       email: data.email,
-//       volwassenen: data.volwassenen,
-//       kinderen: data.kinderen,
-//       babies: data.babies,
-//       wensen: data.wensen,
-//       allergieen: data.allergieen
-//     })
-//   })
-//   .then(()=>{location.reload(); });
-// });
 
 saveClientBtn.addEventListener("click", async () => {
 
@@ -269,6 +216,39 @@ hasAllergy.addEventListener("change", () => {
 let qty = 1;
 let selectedProducts = [];
 
+function getRemainingStock() {
+  const productId = productSelect.value;
+  if (!productId) return 0;
+
+  const product = products.find(p => p.idProducts == productId);
+  if (!product) return 0;
+
+  const existing = selectedProducts.find(p => p.id == product.idProducts);
+  const alreadySelected = existing ? existing.amount : 0;
+
+  return product.aantal - alreadySelected;
+}
+
+function updateQtyButtons() {
+  const remaining = getRemainingStock();
+
+  if (qty >= remaining || remaining === 0) {
+    plusQty.disabled = true;
+    plusQty.style.opacity = "0.5";
+  } else {
+    plusQty.disabled = false;
+    plusQty.style.opacity = "1";
+  }
+
+  if (qty <= 1) {
+    minusQty.disabled = true;
+    minusQty.style.opacity = "0.5";
+  } else {
+    minusQty.disabled = false;
+    minusQty.style.opacity = "1";
+  }
+}
+
 function closeAllModals() {
   overlay.classList.add("hidden");
   clientDetailModal.classList.add("hidden");
@@ -325,12 +305,12 @@ function fillClientDetail(client) {
   detailAllergy.textContent = client.allergenen;
   detailPackages.textContent = client.aantal_pakketten;
   detailLastPackage.textContent = client.laatste_samenstelling || "Nog geen pakket";
-  detailStatus.innerHTML = client.status === "Goedgekeurd"
-  ? '<span class="status-success">✓ Goedgekeurd</span>'
-  : '<span class="status-error">✗ Pending</span>';
+  detailStatus.innerHTML = client.status === "Actief"
+  ? '<span class="status-success">✓ Actief</span>'
+  : '<span class="status-error">✗ Inactief</span>';
 
   const approveBtn = document.getElementById("approveClientBtn");
-  if (client.status === "Pending") {
+  if (client.status === "Inactief") {
     approveBtn.classList.remove("hidden");
   } else {
     approveBtn.classList.add("hidden");
@@ -401,7 +381,6 @@ function renderProducts() {
 
   selectedProducts.forEach((product, index) => {
     const row = document.createElement("div");
-    // const name = `${product.productnaam} ${product.categorie} - voorraad: ${product.aantal}`;
     row.className = "product-row";
     row.innerHTML = `
       <div class="product-row-left">
@@ -454,17 +433,50 @@ deleteBtn.addEventListener("click", async () => {
   loadKlanten();
 });
 
-searchInput.addEventListener("input", () => {
-  const value = searchInput.value.toLowerCase();
+searchInput.addEventListener("input", applyFiltersAndSort)
 
-  const filtered = clients.filter(c =>
-    (c.voornaam || "").toLowerCase().includes(value) ||
-    (c.achternaam || "").toLowerCase().includes(value) ||
-    (c.gezinsnaam || "").toLowerCase().includes(value)
+const sortSelect = document.getElementById("sortSelect");
+
+sortSelect.addEventListener("change", () => {
+  applyFiltersAndSort();
+});
+
+function applyFiltersAndSort() {
+  const searchValue = searchInput.value.toLowerCase();
+  const sortValue = sortSelect.value;
+
+  let filtered = clients.filter(c =>
+    (c.voornaam || "").toLowerCase().includes(searchValue) ||
+    (c.achternaam || "").toLowerCase().includes(searchValue) ||
+    (c.gezinsnaam || "").toLowerCase().includes(searchValue)
   );
 
+  switch (sortValue) {
+    case "name_az":
+      filtered.sort((a, b) => a.achternaam.localeCompare(b.achternaam));
+      break;
+
+    case "name_za":
+      filtered.sort((a, b) => b.achternaam.localeCompare(a.achternaam));
+      break;
+
+    case "date_old":
+      filtered.sort((a, b) =>
+        new Date(a.laatste_samenstelling || 0) -
+        new Date(b.laatste_samenstelling || 0)
+      );
+      break;
+
+    case "date_new":
+      filtered.sort((a, b) =>
+        new Date(b.laatste_samenstelling || 0) -
+        new Date(a.laatste_samenstelling || 0)
+      );
+      break;
+  }
+
   renderTable(filtered);
-});
+}
 
 
 function renderTable(data = clients) {
@@ -493,7 +505,7 @@ function renderTable(data = clients) {
       
       <td>
         ${
-          client.status !== "Goedgekeurd" || client.uitgifte_datum
+          client.status !== "Actief" || client.uitgifte_datum
             ? ''
             : client.laatste_samenstelling
               ? `<button class="btn-green-round givePackage" data-id="${client.idVoedselpakketten}">
@@ -506,9 +518,9 @@ function renderTable(data = clients) {
       </td>
       <td>
         ${
-          client.status == 'Goedgekeurd'
-            ? '<span class="status-success">✓ Goedgekeurd</span>'
-            : '<span class="status-error">✗ Pending</span>'
+          client.status == 'Actief'
+            ? '<span class="status-success">✓ Actief</span>'
+            : '<span class="status-error">✗ Inactief</span>'
         }
       </td>
     `;
@@ -580,12 +592,18 @@ minusQty.addEventListener("click", () => {
   if (qty > 1) {
     qty--;
     qtyInput.value = qty;
+    updateQtyButtons();
   }
 });
 
 plusQty.addEventListener("click", () => {
-  qty++;
-  qtyInput.value = qty;
+  const remaining = getRemainingStock();
+
+  if (qty < remaining) {
+    qty++;
+    qtyInput.value = qty;
+    updateQtyButtons();
+  }
 });
 
 addProductBtn.addEventListener("click", () => {
@@ -613,7 +631,7 @@ addProductBtn.addEventListener("click", () => {
   qtyInput.value = 1;
   productSelect.value = "";
 
-  // console.log(selectedProducts);
+  updateQtyButtons();
   renderProducts();
 });
 

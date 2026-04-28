@@ -5,7 +5,6 @@ header('Content-Type: application/json');
 $rawData = file_get_contents("php://input");
 
 $data = json_decode($rawData, true);
-// file_put_contents('klanten2.txt', $rawData, FILE_APPEND);
 $voedselpakketId = $data['idVoedselpakketten'];
 $uitgaveDatum = date("Y-m-d");
 
