@@ -428,18 +428,29 @@ document.addEventListener('DOMContentLoaded', function () {
     function toggleUserStatus(statusCell) {
         const row = statusCell.closest('tr');
         const username = row.cells[0].textContent;
-        const status = statusCell.classList.contains('inactive') ? 'actief' : 'inactief';
+        const status = statusCell.classList.contains('inactive') ? 'Actief' : 'Inactief';
 
-        // Update status display
-        const statusDisplay = status === 'actief' ?
-            '<span class="dot green"></span>Actief' :
-            '<span class="dot red"></span>Inactief';
-        statusCell.innerHTML = statusDisplay;
-
-        // Toggle inactive class
-        statusCell.classList.toggle('inactive');
-
-        console.log(`User "${username}" status toggled to ${status}`);
+        fetch('actions/toggleUserStatus.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: username, status: status })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const statusDisplay = status === 'Actief' ?
+                        '<span class="dot green"></span>Actief' :
+                        '<span class="dot red"></span>Inactief';
+                    statusCell.innerHTML = statusDisplay;
+                    statusCell.classList.toggle('inactive');
+                } else {
+                    alert('Fout bij wijzigen status: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Er is een fout opgetreden bij het wijzigen van de status.');
+            });
     }
 
     // Add event listeners to existing edit and delete buttons
