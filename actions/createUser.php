@@ -8,14 +8,14 @@ $wachtwoord = $_POST['password'];
 $email = $_POST['email'];
 $rol = $_POST['role'];
 
-// Map role to database ID
+// Rol toewijzen aan database ID
 $roleMapping = [
     'directeur' => 1,
     'magazijnmedewerker' => 2,
     'vrijwilliger' => 3
 ];
 
-$roleId = $roleMapping[$rol] ?? 1; // Default to director if not found
+$roleId = $roleMapping[$rol] ?? 1; // Standaard directeur als niet gevonden
 
 $salt = "9Q3z8T";
 $saltedWachtwoord = $wachtwoord.$salt;

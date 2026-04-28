@@ -366,6 +366,46 @@ tbody tr {
     background: #25692a;
 }
 
+/* PASSWORD HINT */
+.password-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #888;
+    font-style: italic;
+}
+
+/* EDIT FORM STYLES */
+#editForm {
+    padding: 20px;
+}
+
+.close-edit {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close-edit:hover {
+    color: #000;
+}
+
+.btn-cancel-edit {
+    background: #f5f5f5;
+    color: #666;
+    border: 1px solid #ddd;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-cancel-edit:hover {
+    background: #e8e8e8;
+}
+
 /* ANIMATIONS */
 @keyframes fadeIn {
     from {

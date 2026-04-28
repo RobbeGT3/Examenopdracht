@@ -17,6 +17,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const toggleNewPasswordBtn = document.getElementById('toggleNewPassword');
     const toggleConfirmPasswordBtn = document.getElementById('toggleConfirmPassword');
 
+    // Edit modal variables
+    const editModal = document.getElementById('editModal');
+    const editForm = document.getElementById('editForm');
+    const closeEditBtn = document.querySelector('.close-edit');
+    const cancelEditBtn = document.querySelector('.btn-cancel-edit');
+    const toggleEditPasswordBtn = document.getElementById('toggleEditPassword');
+    const generateEditPasswordBtn = document.getElementById('generateEditPassword');
+
     // Open modal when clicking the "Nieuwe Gebruiker" button
     btn.addEventListener('click', function () {
         modal.style.display = 'block';
@@ -71,6 +79,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 closeModal();
             } else if (passwordModal.style.display === 'block') {
                 closePasswordModal();
+            } else if (editModal.style.display === 'block') {
+                closeEditModal();
             }
         }
     });
@@ -97,6 +107,24 @@ document.addEventListener('DOMContentLoaded', function () {
         this.style.fontStyle = type === 'password' ? 'normal' : 'italic';
     });
 
+    // Edit modal event listeners
+    closeEditBtn.addEventListener('click', closeEditModal);
+    cancelEditBtn.addEventListener('click', closeEditModal);
+
+    // Edit password toggle
+    toggleEditPasswordBtn.addEventListener('click', function () {
+        const passwordInput = document.getElementById('editPassword');
+        const type = passwordInput.type === 'password' ? 'text' : 'password';
+        passwordInput.type = type;
+        this.style.fontStyle = type === 'password' ? 'normal' : 'italic';
+    });
+
+    // Edit password generation
+    generateEditPasswordBtn.addEventListener('click', function () {
+        const password = generatePassword();
+        document.getElementById('editPassword').value = password;
+    });
+
     // Password form submission
     passwordForm.addEventListener('submit', function (e) {
         e.preventDefault();
@@ -115,14 +143,38 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        alert(`Wachtwoord voor ${username} is succesvol gewijzigd!`);
-        closePasswordModal();
+        // Send data to backend
+        const formData = new FormData();
+        formData.append('username', username);
+        formData.append('newPassword', newPassword);
+
+        fetch('actions/changePassword.php', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Wachtwoord succesvol gewijzigd!');
+                    closePasswordModal();
+                } else {
+                    alert('Er is een fout opgetreden: ' + (data.message || 'Onbekende fout'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Er is een fout opgetreden bij het wijzigen van het wachtwoord.');
+            });
     });
 
     // Close modal when pressing Escape key
     document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && modal.style.display === 'block') {
-            closeModal();
+        if (event.key === 'Escape') {
+            if (modal.style.display === 'block') {
+                closeModal();
+            } else if (editModal.style.display === 'block') {
+                closeEditModal();
+            }
         }
     });
 
@@ -136,6 +188,27 @@ document.addEventListener('DOMContentLoaded', function () {
         passwordModal.style.display = 'none';
         document.body.style.overflow = 'auto'; // Restore scrolling
         passwordForm.reset(); // Clear form fields
+    }
+
+    function closeEditModal() {
+        editModal.style.display = 'none';
+        document.body.style.overflow = 'auto'; // Restore scrolling
+        editForm.reset(); // Clear form fields
+    }
+
+    function openEditModal(row) {
+        const username = row.dataset.username;
+        const email = row.dataset.email;
+        const role = row.dataset.role;
+
+        document.getElementById('originalUsername').value = username;
+        document.getElementById('editUsername').value = username;
+        document.getElementById('editEmail').value = email;
+        document.getElementById('editRole').value = role;
+        document.getElementById('editPassword').value = ''; // Always empty
+
+        editModal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
     }
 
     // Handle form submission
@@ -199,6 +272,70 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     });
 
+    // Handle edit form submission
+    editForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const originalUsername = document.getElementById('originalUsername').value;
+        const username = document.getElementById('editUsername').value.trim();
+        const email = document.getElementById('editEmail').value.trim();
+        const role = document.getElementById('editRole').value;
+        const password = document.getElementById('editPassword').value;
+
+        // Basic validation
+        if (!username || !email || !role) {
+            alert('Vul alle verplichte velden in.');
+            return;
+        }
+
+        if (username.length < 3) {
+            alert('Gebruikersnaam moet minimaal 3 tekens bevatten.');
+            return;
+        }
+
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            alert('Voer een geldig e-mailadres in.');
+            return;
+        }
+
+        // Password validation (only if provided)
+        if (password && password.length < 6) {
+            alert('Wachtwoord moet minimaal 6 tekens bevatten.');
+            return;
+        }
+
+        // Send data to backend
+        const formData = new FormData();
+        formData.append('originalUsername', originalUsername);
+        formData.append('username', username);
+        formData.append('email', email);
+        formData.append('role', role);
+        if (password) {
+            formData.append('password', password);
+        }
+
+        fetch('actions/updateUser.php', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Gebruiker succesvol bijgewerkt!');
+                    // Reload page to show updated data
+                    window.location.reload();
+                } else {
+                    alert('Er is een fout opgetreden: ' + (data.message || 'Onbekende fout'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Er is een fout opgetreden bij het bijwerken van de gebruiker.');
+            });
+    });
+
     function addUserToTable(username, role, status) {
         const table = document.querySelector('tbody');
         const newRow = document.createElement('tr');
@@ -244,14 +381,32 @@ document.addEventListener('DOMContentLoaded', function () {
         const deleteBtn = newRow.querySelector('.delete');
         const passwordBtn = newRow.querySelector('.password');
         const statusCell = newRow.querySelector('.status-cell');
-
         editBtn.addEventListener('click', function () {
-            console.log('Edit user:', username);
+            openEditModal(newRow);
         });
 
         deleteBtn.addEventListener('click', function () {
             if (confirm(`Gebruiker "${username}" verwijderen?`)) {
-                newRow.remove();
+                const formData = new FormData();
+                formData.append('username', username);
+
+                fetch('actions/deleteUser.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Gebruiker succesvol verwijderd!');
+                            newRow.remove();
+                        } else {
+                            alert('Er is een fout opgetreden: ' + (data.message || 'Onbekende fout'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Er is een fout opgetreden bij het verwijderen van de gebruiker.');
+                    });
             }
         });
 
@@ -291,8 +446,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.edit').forEach(btn => {
         btn.addEventListener('click', function () {
             const row = this.closest('tr');
-            const username = row.cells[0].textContent;
-            console.log('Edit user:', username);
+            openEditModal(row);
         });
     });
 
@@ -301,7 +455,27 @@ document.addEventListener('DOMContentLoaded', function () {
             const row = this.closest('tr');
             const username = row.cells[0].textContent;
             if (confirm(`Gebruiker "${username}" verwijderen?`)) {
-                row.remove();
+                // Send data to backend
+                const formData = new FormData();
+                formData.append('username', username);
+
+                fetch('actions/deleteUser.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Gebruiker succesvol verwijderd!');
+                            row.remove();
+                        } else {
+                            alert('Er is een fout opgetreden: ' + (data.message || 'Onbekende fout'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Er is een fout opgetreden bij het verwijderen van de gebruiker.');
+                    });
             }
         });
     });
@@ -323,129 +497,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-function addUserToTable(username, role, status) {
-    const table = document.querySelector('tbody');
-    const newRow = document.createElement('tr');
-
-    // Determine badge color based on role
-    let badgeClass = '';
-    let roleText = '';
-    switch (role) {
-        case 'directeur':
-            badgeClass = 'purple';
-            roleText = 'Directeur';
-            break;
-        case 'magazijnmedewerker':
-            badgeClass = 'blue';
-            roleText = 'Magazijnmedewerker';
-            break;
-        case 'vrijwilliger':
-            badgeClass = 'green';
-            roleText = 'Vrijwilliger';
-            break;
-    }
-
-    // Determine status display
-    const statusDisplay = status === 'actief' ?
-        '<span class="dot green"></span>Actief' :
-        '<span class="dot red"></span>Inactief';
-
-    newRow.innerHTML = `
-        <td>${username}</td>
-        <td><span class="badge ${badgeClass}">${roleText}</span></td>
-        <td class="status-cell ${status === 'inactief' ? 'inactive' : ''}">${statusDisplay}</td>
-        <td class="actions">
-            <button class="edit"></button>
-            <button class="password"></button>
-            <button class="delete"></button>
-        </td>
-    `;
-
-    table.appendChild(newRow);
-
-    // Add event listeners to new buttons
-    const editBtn = newRow.querySelector('.edit');
-    const deleteBtn = newRow.querySelector('.delete');
-    const passwordBtn = newRow.querySelector('.password');
-    const statusCell = newRow.querySelector('.status-cell');
-
-    editBtn.addEventListener('click', function () {
-        console.log('Edit user:', username);
-    });
-
-    deleteBtn.addEventListener('click', function () {
-        if (confirm(`Gebruiker "${username}" verwijderen?`)) {
-            newRow.remove();
-        }
-    });
-
-    passwordBtn.addEventListener('click', function () {
-        openPasswordModal(username);
-    });
-
-    statusCell.addEventListener('click', function () {
-        toggleUserStatus(this);
-    });
-}
-
-function openPasswordModal(username) {
-    document.getElementById('passwordUsername').value = username;
-    passwordModal.style.display = 'block';
-    document.body.style.overflow = 'hidden';
-}
-
-function toggleUserStatus(statusCell) {
-    const row = statusCell.closest('tr');
-    const username = row.cells[0].textContent;
-    const status = statusCell.classList.contains('inactive') ? 'actief' : 'inactief';
-
-    // Update status display
-    const statusDisplay = status === 'actief' ?
-        '<span class="dot green"></span>Actief' :
-        '<span class="dot red"></span>Inactief';
-    statusCell.innerHTML = statusDisplay;
-
-    // Toggle inactive class
-    statusCell.classList.toggle('inactive');
-
-    console.log(`User "${username}" status toggled to ${status}`);
-}
-
-// Add event listeners to existing edit and delete buttons
-document.querySelectorAll('.edit').forEach(btn => {
-    btn.addEventListener('click', function () {
-        const row = this.closest('tr');
-        const username = row.cells[0].textContent;
-        console.log('Edit user:', username);
-    });
-});
-
-document.querySelectorAll('.delete').forEach(btn => {
-    btn.addEventListener('click', function () {
-        const row = this.closest('tr');
-        const username = row.cells[0].textContent;
-        if (confirm(`Gebruiker "${username}" verwijderen?`)) {
-            row.remove();
-        }
-    });
-});
-
-// Add event listeners to existing status cells
-document.querySelectorAll('.status-cell').forEach(cell => {
-    cell.addEventListener('click', function () {
-        toggleUserStatus(this);
-    });
-});
-
-// Add event listeners to existing password buttons
-document.querySelectorAll('.password').forEach(btn => {
-    btn.addEventListener('click', function () {
-        const row = this.closest('tr');
-        const username = row.cells[0].textContent;
-        openPasswordModal(username);
-    });
-});
-
+// Standalone helper function for password generation
 function generatePassword() {
     const length = 12;
     const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';

@@ -86,19 +86,25 @@ $gebruikers = $result1->fetch_all(MYSQLI_ASSOC);
 
                     <tbody>
                         <?php foreach ($gebruikers as $gebruiker): ?>
-                            <tr>
+                            <?php
+                            $rol = $gebruiker['rolnaam'];
+                            $class = '';
+                            $roleValue = '';
+                            if ($rol === 'Directie') {
+                                $class = 'purple';
+                                $roleValue = 'directeur';
+                            } elseif ($rol === 'Magazijnmedewerker') {
+                                $class = 'blue';
+                                $roleValue = 'magazijnmedewerker';
+                            } elseif ($rol === 'Vrijwilliger') {
+                                $class = 'green';
+                                $roleValue = 'vrijwilliger';
+                            }
+                            ?>
+                            <tr data-username="<?= htmlspecialchars($gebruiker['username']) ?>" data-email="<?= htmlspecialchars($gebruiker['email']) ?>" data-role="<?= $roleValue ?>">
                                 <td><?= htmlspecialchars($gebruiker['username']) ?></td>
 
                                 <td>
-                                    <?php
-                                    $rol = $gebruiker['rolnaam'];
-
-                                    $class = '';
-                                    if ($rol === 'Directie') $class = 'purple';
-                                    elseif ($rol === 'Magazijnmedewerker') $class = 'blue';
-                                    elseif ($rol === 'Vrijwilliger') $class = 'green';
-                                    ?>
-
                                     <span class="badge <?= $class ?>">
                                         <?= htmlspecialchars($rol) ?>
                                     </span>
@@ -107,7 +113,6 @@ $gebruikers = $result1->fetch_all(MYSQLI_ASSOC);
                                 <td class="status-cell">
                                     <?php
                                     $status = $gebruiker['status'];
-
                                     $dotClass = ($status === 'Actief') ? 'green' : 'red';
                                     ?>
                                     <span class="dot <?= $dotClass ?>"></span><?= ucfirst(htmlspecialchars($status)) ?>
@@ -164,6 +169,49 @@ $gebruikers = $result1->fetch_all(MYSQLI_ASSOC);
                 <div class="form-actions">
                     <button type="button" class="btn-cancel">Annuleren</button>
                     <button type="submit" class="btn-submit">Gebruiker Aanmaken</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Gebruiker Bewerken</h2>
+                <span class="close-edit">&times;</span>
+            </div>
+            <form id="editForm">
+                <input type="hidden" id="originalUsername" name="originalUsername">
+                <div class="form-group">
+                    <label for="editUsername">Gebruikersnaam</label>
+                    <input type="text" id="editUsername" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEmail">E-mail</label>
+                    <input type="email" id="editEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="editRole">Rol</label>
+                    <select id="editRole" name="role" required>
+                        <option value="">Selecteer een rol</option>
+                        <option value="directeur">Directeur</option>
+                        <option value="magazijnmedewerker">Magazijnmedewerker</option>
+                        <option value="vrijwilliger">Vrijwilliger</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editPassword">Nieuw Wachtwoord (optioneel)</label>
+                    <div class="password-input-group">
+                        <input type="password" id="editPassword" name="password" placeholder="Laat leeg om niet te wijzigen">
+                        <button type="button" class="btn-toggle" id="toggleEditPassword" title="Toon/Wachtwoord verbergen">o</button>
+                        <button type="button" class="btn-generate" id="generateEditPassword">Genereer</button>
+                    </div>
+                    <small class="password-hint">Laat dit veld leeg om het huidige wachtwoord te behouden</small>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel-edit">Annuleren</button>
+                    <button type="submit" class="btn-submit">Wijzigingen Opslaan</button>
                 </div>
             </form>
         </div>
