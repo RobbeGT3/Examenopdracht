@@ -546,7 +546,18 @@ savePackageBtn.addEventListener("click", async () => {
     return;
   }
 
-  await fetch("/actions/klanten/createVoedselpakket.php", {
+  // await fetch("/actions/klanten/createVoedselpakket.php", {
+  //   method: "POST",
+  //   headers: {
+  //     "Content-Type": "application/json"
+  //   },
+  //   body: JSON.stringify({
+  //     klantId: currentClient.idKlanten,
+  //     producten: selectedProducts
+  //   })
+  // });
+
+  await fetch("/actions/voedselpakketten/createVoedselpakket.php", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"

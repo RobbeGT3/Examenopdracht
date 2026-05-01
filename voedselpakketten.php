@@ -1,8 +1,11 @@
 <?php
 session_start();
-// if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
-//     die("Page not available");
-// }
+if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true || (
+        $_SESSION['userrole'] !== 'Vrijwilliger' &&
+        $_SESSION['userrole'] !== 'Directie'
+    )) {
+    die("Page not available");
+}
 
 $currentPage = basename($_SERVER['PHP_SELF']);
 require_once  __DIR__. '/common/dbconnection.php';
