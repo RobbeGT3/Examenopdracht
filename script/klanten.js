@@ -177,7 +177,7 @@ saveClientBtn.addEventListener("click", async () => {
     ? "/actions/klanten/updateKlant.php"
     : "/actions/klanten/createKlant.php";
 
-  await fetch(url, {
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -185,6 +185,13 @@ saveClientBtn.addEventListener("click", async () => {
       ...data
     })
   });
+
+  const result = await res.json();
+
+  if (!result.success) {
+  alert(result.message); 
+  return; 
+}
 
   closeAllModals();
   loadKlanten();

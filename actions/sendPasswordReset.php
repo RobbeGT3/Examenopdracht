@@ -12,7 +12,8 @@ if (empty($email)) {
 }
 
 // Controleer of klant bestaat
-$stmt = $conn->prepare("SELECT idKlanten, email FROM Klanten WHERE email = ?");
+// $stmt = $conn->prepare("SELECT idKlanten, email FROM Klanten WHERE email = ?");
+$stmt = $conn->prepare("SELECT idGebruiker, email FROM Gebruiker WHERE email = ?");
 $stmt->bind_param("s", $email);
 $stmt->execute();
 $result = $stmt->get_result();
