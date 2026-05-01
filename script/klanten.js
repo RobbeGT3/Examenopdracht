@@ -1,7 +1,7 @@
 let clients = [];
 let products = [];
 let currentClient = null;
-let isEditMode = false;   
+let isEditMode = false;
 
 async function loadKlanten() {
   const res = await fetch("/actions/klanten/getKlanten.php");
@@ -24,7 +24,7 @@ function fillProductSelect() {
 
   products.forEach(product => {
     const option = document.createElement("option");
-    option.value = product.idProducts; 
+    option.value = product.idProducts;
     const displayName = `${product.productnaam} (${product.product_categorie}) - voorraad: ${product.aantal}`;
     option.textContent = displayName;
 
@@ -50,7 +50,7 @@ document.addEventListener("click", (e) => {
     const id = e.target.dataset.id;
 
     const client = clients.find(c => c.idKlanten == id);
-    currentClient = client; 
+    currentClient = client;
 
 
     fillPackageModal(client);
@@ -65,12 +65,12 @@ document.addEventListener("click", (e) => {
   if (e.target.classList.contains("givePackage")) {
     const id = e.target.dataset.id;
     if (!id) {
-    alert("Geen voedselpakket gevonden");
-    return;
-  }
+      alert("Geen voedselpakket gevonden");
+      return;
+    }
 
-  givePackage(id);
-    
+    givePackage(id);
+
   }
 
 });
@@ -157,7 +157,7 @@ saveClientBtn.addEventListener("click", async () => {
     kinderen: document.getElementById("kinderen").value,
     babies: document.getElementById("babies").value,
     wensen: Array.from(document.querySelectorAll('input[name="wensen[]"]:checked'))
-                  .map(cb => cb.value),
+      .map(cb => cb.value),
     allergieen: getAllergies()
   };
 
@@ -177,17 +177,24 @@ saveClientBtn.addEventListener("click", async () => {
     ? "/actions/klanten/updateKlant.php"
     : "/actions/klanten/createKlant.php";
 
-  await fetch(url, {
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      id: currentClient?.idKlanten, 
+      id: currentClient?.idKlanten,
       ...data
     })
   });
 
+  const result = await res.json();
+
+  if (!result.success) {
+  alert(result.message); 
+  return; 
+}
+
   closeAllModals();
-  loadKlanten(); 
+  loadKlanten();
 });
 
 
@@ -306,8 +313,8 @@ function fillClientDetail(client) {
   detailPackages.textContent = client.aantal_pakketten;
   detailLastPackage.textContent = client.laatste_samenstelling || "Nog geen pakket";
   detailStatus.innerHTML = client.status === "Actief"
-  ? '<span class="status-success">✓ Actief</span>'
-  : '<span class="status-error">✗ Inactief</span>';
+    ? '<span class="status-success">✓ Actief</span>'
+    : '<span class="status-error">✗ Inactief</span>';
 
   const approveBtn = document.getElementById("approveClientBtn");
   if (client.status === "Inactief") {
@@ -320,7 +327,7 @@ function fillClientDetail(client) {
 function openEditClientModal(client) {
 
   isEditMode = true;
-  document.getElementById("clientModalTitle").textContent = "Klant Bewerken"; 
+  document.getElementById("clientModalTitle").textContent = "Klant Bewerken";
   document.getElementById("voornaam").value = client.voornaam;
   document.getElementById("achternaam").value = client.achternaam;
   document.getElementById("adres").value = client.adres;
@@ -496,32 +503,30 @@ function renderTable(data = clients) {
       <td>${client.telefoonnummer}</td>
       <td>
         ${client.laatste_samenstelling
-          ? client.laatste_samenstelling
-          : '<span class="status-warning">Nog geen pakket</span>'}
+        ? client.laatste_samenstelling
+        : '<span class="status-warning">Nog geen pakket</span>'}
       </td>
       <td>
         ${client.uitgifte_datum || '-'}
       </td>
       
       <td>
-        ${
-          client.status !== "Actief" || client.uitgifte_datum
-            ? ''
-            : client.laatste_samenstelling
-              ? `<button class="btn-green-round givePackage" data-id="${client.idVoedselpakketten}">
+        ${client.status !== "Actief" || client.uitgifte_datum
+        ? ''
+        : client.laatste_samenstelling
+          ? `<button class="btn-green-round givePackage" data-id="${client.idVoedselpakketten}">
                   ✓ Uitgeven
                 </button>`
-              : `<button class="btn-blue openPackageModal" data-id="${client.idKlanten}">
+          : `<button class="btn-blue openPackageModal" data-id="${client.idKlanten}">
                   + Aanmaken
                 </button>`
-        }
+      }
       </td>
       <td>
-        ${
-          client.status == 'Actief'
-            ? '<span class="status-success">✓ Actief</span>'
-            : '<span class="status-error">✗ Inactief</span>'
-        }
+        ${client.status == 'Actief'
+        ? '<span class="status-success">✓ Actief</span>'
+        : '<span class="status-error">✗ Inactief</span>'
+      }
       </td>
     `;
 
@@ -618,7 +623,7 @@ addProductBtn.addEventListener("click", () => {
   const existing = selectedProducts.find(p => p.id == product.idProducts);
 
   if (existing) {
-    existing.amount += qty; 
+    existing.amount += qty;
   } else {
     selectedProducts.push({
       id: product.idProducts,
