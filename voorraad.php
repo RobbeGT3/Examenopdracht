@@ -1,9 +1,7 @@
 <?php
 session_start();
-// if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
-//     die("Page not available");
-// }
 
+require_once __DIR__ . '/common/auth.php';
 
 $currentPage = basename($_SERVER['PHP_SELF']);
 require_once  __DIR__. '/common/dbconnection.php';

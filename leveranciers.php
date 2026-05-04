@@ -1,5 +1,8 @@
 <?php
 session_start();
+
+require_once __DIR__ . '/common/auth.php';
+
 $currentPage = basename($_SERVER['PHP_SELF']);
 require_once __DIR__ . '/common/dbconnection.php';
 
