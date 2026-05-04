@@ -24,7 +24,7 @@ LEFT JOIN Klantenwensen kw
     ON khkw.Klantenwensen_idKlantenwensen = kw.idKlantenwensen
 LEFT JOIN Klanten_allergenen ka 
     ON k.idKlanten = ka.Klanten_idKlanten
-WHERE k.status = 'Goedgekeurd'
+WHERE k.status = 'Actief'
 GROUP BY k.idKlanten
 ";
 
