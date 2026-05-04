@@ -24,7 +24,7 @@
       </a>
 
       <?php if ($_SESSION['userrole'] === 'Magazijnmedewerker' || $_SESSION['userrole'] === 'Directie'): ?>
-      <a href="leverancier.php" class="menu-btn <?= ($currentPage == 'leverancier.php') ? 'active' : '' ?>">
+      <a href="leveranciers.php" class="menu-btn <?= ($currentPage == 'leveranciers.php') ? 'active' : '' ?>">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="7" width="11" height="10" rx="2"></rect>
           <path d="M13 10h4l3 3v4h-7"></path>
