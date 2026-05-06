@@ -64,7 +64,7 @@ if ($stmt->execute()) {
     $leverancierId = $stmt->insert_id;
 
     $stmtLevering = $conn->prepare("
-        INSERT INTO leveringen (Leverancier_idLeverancier, leverings_datum) 
+        INSERT INTO Leveringen (Leverancier_idLeverancier, leverings_datum) 
         VALUES (?, ?)
     ");
     

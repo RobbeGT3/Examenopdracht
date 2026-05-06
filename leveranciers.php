@@ -23,7 +23,7 @@ $sql = "
         l.plaats,
         -- Subquery: vind de eerstvolgende levering die nog niet is geweest
         (SELECT MIN(lev.leverings_datum) 
-         FROM leveringen lev 
+         FROM Leveringen lev 
          WHERE lev.Leverancier_idLeverancier = l.idLeverancier 
          AND lev.leverings_datum > NOW()
         ) as eerstvolgende_levering
@@ -158,6 +158,31 @@ tbody tr:hover {
 .btn-delete:hover {
     background: #ffebee;
     border-radius: 4px;
+}
+
+/* Datum + Tijd combinatie in 1 balk */
+.datum-tijd-combi {
+    flex: 1;
+}
+
+.datum-tijd-balk {
+    display: flex;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.datum-tijd-balk input[type="date"] {
+    flex: 2;
+    border: none;
+    border-right: 1px solid #ccc;
+    padding: 10px;
+}
+
+.datum-tijd-balk input[type="time"] {
+    flex: 1;
+    border: none;
+    padding: 10px;
 }
 
 
@@ -359,13 +384,12 @@ tbody tr:hover {
       </div>
 
       <div class="form-row">
-        <div class="form-group">
-          <label>Eerste Levering Datum *</label>
-          <input type="date" id="eersteLevering">
-        </div>
-        <div class="form-group">
-          <label>Eerste Levering Tijd *</label>
-          <input type="time" id="eersteLeveringTijd" value="09:00">
+        <div class="form-group datum-tijd-combi">
+          <label>Eerste Levering *</label>
+          <div class="datum-tijd-balk">
+            <input type="date" id="eersteLevering">
+            <input type="time" id="eersteLeveringTijd" value="09:00">
+          </div>
         </div>
       </div>
       <div class="modal-actions">

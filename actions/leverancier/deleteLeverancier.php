@@ -1,9 +1,4 @@
 <?php
-// =====================================================
-// DELETE LEVERANCIER - PHP ACTION FILE
-// =====================================================
-// Dit bestand verwijdert een leverancier uit de database
-
 // Zet PHP errors uit zodat ze de JSON niet verstoren
 error_reporting(0);
 ini_set('display_errors', 0);
@@ -25,8 +20,8 @@ try {
     
     $id = intval($data['id']); // Zet om naar integer voor veiligheid
     
-    // Eerst de gerelateerde leveringen verwijderen (om foreign key errors te voorkomen)
-    $stmtLeveringen = $conn->prepare("DELETE FROM leveringen WHERE Leverancier_idLeverancier = ?");
+    // Eerst de gerelateerde Leveringen verwijderen (om foreign key errors te voorkomen)
+    $stmtLeveringen = $conn->prepare("DELETE FROM Leveringen WHERE Leverancier_idLeverancier = ?");
     $stmtLeveringen->bind_param("i", $id);
     $stmtLeveringen->execute();
     $stmtLeveringen->close();
