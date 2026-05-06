@@ -26,9 +26,6 @@ $error   = null;
 
 try {
 
-// =====================================================
-// RAPPORT: Voorraad per categorie (alle voorraad)
-// =====================================================
 if ($type === 'voorraad_per_categorie') {
     $stmt = $conn->prepare("
         SELECT
@@ -49,9 +46,6 @@ if ($type === 'voorraad_per_categorie') {
     $summary['Totaal voorraad']    = array_sum(array_column($data, 'totaal_voorraad'));
 }
 
-// =====================================================
-// RAPPORT: Producten ontvangen per categorie (op maand)
-// =====================================================
 elseif ($type === 'ontvangen_per_maand') {
     $stmt = $conn->prepare("
         SELECT
@@ -74,9 +68,6 @@ elseif ($type === 'ontvangen_per_maand') {
     $summary['Totaal eenheden ontvangen'] = array_sum(array_column($data, 'totaal_aantal'));
 }
 
-// =====================================================
-// RAPPORT: Voedselpakketten per maand
-// =====================================================
 elseif ($type === 'pakketten_per_maand') {
     $stmt = $conn->prepare("
         SELECT
@@ -105,9 +96,6 @@ elseif ($type === 'pakketten_per_maand') {
     $summary['Totaal productregels'] = array_sum(array_column($data, 'aantal_producten'));
 }
 
-// =====================================================
-// RAPPORT: Klantenoverzicht
-// =====================================================
 elseif ($type === 'klantenoverzicht') {
     $stmt = $conn->prepare("
         SELECT
@@ -135,9 +123,6 @@ elseif ($type === 'klantenoverzicht') {
         : 0;
 }
 
-// =====================================================
-// RAPPORT: Leveringen per maand
-// =====================================================
 elseif ($type === 'leveringen_per_maand') {
     $stmt = $conn->prepare("
         SELECT
@@ -388,7 +373,6 @@ body {
             </form>
         </div>
 
-        <!-- SUMMARY CARDS -->
         <?php if (!empty($summary)): ?>
         <div class="summary-cards">
             <?php foreach ($summary as $label => $value): ?>
@@ -400,7 +384,6 @@ body {
         </div>
         <?php endif; ?>
 
-        <!-- REPORT -->
         <div class="report-box">
             <div class="report-header">
                 <h2><?= htmlspecialchars($rapportTitel) ?></h2>
