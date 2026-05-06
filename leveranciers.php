@@ -312,25 +312,39 @@ window.onclick = (e) => {
   }
 };
 
-// Form submit handler
+// Form submit handler - naar database
 const form = document.querySelector('form');
-form.addEventListener('submit', (e) => {
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
+  
   const leverancier = {
-    bedrijf: document.getElementById('bedrijf').value,
+    bedrijfsnaam: document.getElementById('bedrijf').value,
     adres: document.getElementById('adres').value,
-    contact: document.getElementById('contact').value,
+    contactpersoon: document.getElementById('contact').value,
     email: document.getElementById('email').value,
-    telefoon: document.getElementById('telefoon').value,
-    levering: document.getElementById('levering').value,
-    frequentie: document.getElementById('frequentie').value
+    telefoonnummer: document.getElementById('telefoon').value,
+    eerstvolgende_levering: document.getElementById('levering').value,
+    leverfrequentie: document.getElementById('frequentie').value
   };
-  let leveranciers = JSON.parse(localStorage.getItem('leveranciers')) || [];
-  leveranciers.push(leverancier);
-  localStorage.setItem('leveranciers', JSON.stringify(leveranciers));
-  addRowToTable(leverancier);
-  modal.style.display = 'none';
-  form.reset();
+  
+  try {
+    const response = await fetch('actions/addLeverancier.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(leverancier)
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      alert('Leverancier opgeslagen in database!');
+      location.reload();
+    } else {
+      alert('Fout: ' + result.message);
+    }
+  } catch (error) {
+    alert('Er is een fout opgetreden: ' + error.message);
+  }
 });
 
 function addRowToTable(lev) {
