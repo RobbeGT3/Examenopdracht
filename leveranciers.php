@@ -1,6 +1,65 @@
 <?php
+// =====================================================
+// LEVERANCIERS BEHEER PAGINA
+// =====================================================
+// Deze pagina toont alle leveranciers uit de database
+// en laat je nieuwe leveranciers toevoegen
+
+// Start de PHP sessie (nodig voor login)
 session_start();
+
+// Bepaal welke pagina dit is (voor het menu)
 $currentPage = basename($_SERVER['PHP_SELF']);
+
+// Verbind met de database
+require_once __DIR__ . '/common/dbconnection.php';
+
+// =====================================================
+// STAP 1: Haal alle leveranciers op uit de database
+// =====================================================
+$sql = "
+    SELECT 
+        l.idLeverancier,
+        l.bedrijfsnaam,
+        l.contactpersoon,
+        l.`e-mailadres` as email,
+        l.telefoonnummer,
+        l.adres,
+        l.postcode,
+        l.plaats,
+        -- Subquery: vind de eerstvolgende levering die nog niet is geweest
+        (SELECT MIN(lev.leverings_datum) 
+         FROM leveringen lev 
+         WHERE lev.Leverancier_idLeverancier = l.idLeverancier 
+         AND lev.leverings_datum > NOW()
+        ) as eerstvolgende_levering
+    FROM Leverancier l
+    ORDER BY l.bedrijfsnaam
+";
+
+// Voer de query uit
+$result = mysqli_query($conn, $sql);
+
+// Zet de resultaten in een array
+$leveranciers = [];
+while ($row = mysqli_fetch_assoc($result)) {
+    $leveranciers[] = $row;
+}
+
+// Sluit de database verbinding
+$conn->close();
+
+// =====================================================
+// HELPER FUNCTIE: Formatteer datum voor weergave
+// =====================================================
+function formatDatum($datum) {
+    // Als er geen datum is, toon "Geen gepland"
+    if (!$datum) return 'Geen gepland';
+    
+    // Maak een DateTime object en formatteer het
+    $dt = new DateTime($datum);
+    return $dt->format('d-m-Y H:i'); // bv: 15-05-2025 14:30
+}
 ?>
 <!DOCTYPE html>
 <html lang="nl">
@@ -199,37 +258,30 @@ tbody tr:hover {
           <th>Contactpersoon</th>
           <th>E-mail</th>
           <th>Telefoon</th>
-          <th>Volgende Levering</th>
-          <th>Frequentie</th>
+          <th>Adres</th>
+          <th>Postcode</th>
+          <th>Plaats</th>
+          <th>Eerstvolgende Levering</th>
           <th>Acties</th>
         </tr>
       </thead>
-      <tbody>
-        <tr>
-          <td>Albert Heijn</td>
-          <td>Jan de Vries</td>
-          <td>jan@ah.nl</td>
-          <td>020-1234567</td>
-          <td>28-3-2026, 10:00</td>
-          <td>Wekelijks</td>
+      <tbody id="leveranciersTableBody">
+        <?php foreach ($leveranciers as $lev): ?>
+        <tr data-id="<?= $lev['idLeverancier'] ?>">
+          <td><?= htmlspecialchars($lev['bedrijfsnaam']) ?></td>
+          <td><?= htmlspecialchars($lev['contactpersoon']) ?></td>
+          <td><?= htmlspecialchars($lev['email']) ?></td>
+          <td><?= htmlspecialchars($lev['telefoonnummer']) ?></td>
+          <td><?= htmlspecialchars($lev['adres']) ?></td>
+          <td><?= htmlspecialchars($lev['postcode']) ?></td>
+          <td><?= htmlspecialchars($lev['plaats']) ?></td>
+          <td><?= formatDatum($lev['eerstvolgende_levering']) ?></td>
           <td class="actions">
-            <span class="edit"></span>
-            <span class="delete"></span>
+            <span class="edit" onclick="editLeverancier(<?= $lev['idLeverancier'] ?>)"></span>
+            <span class="delete" onclick="deleteLeverancier(<?= $lev['idLeverancier'] ?>)"></span>
           </td>
         </tr>
-
-        <tr>
-          <td>Jumbo</td>
-          <td>Maria Jansen</td>
-          <td>maria@jumbo.nl</td>
-          <td>030-9876543</td>
-          <td>30-3-2026, 14:00</td>
-          <td>Maandelijks</td>
-          <td class="actions">
-            <span class="edit"></span>
-            <span class="delete"></span>
-          </td>
-        </tr>
+        <?php endforeach; ?>
       </tbody>
     </table>
   </div>
@@ -277,21 +329,26 @@ tbody tr:hover {
         </div>
 
         <div class="form-group">
-          <label>Eerstvolgende Levering *</label>
-          <input type="datetime-local" id="levering">
+          <label>Postcode *</label>
+          <input type="text" id="postcode">
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
+          <label>Plaats *</label>
+          <input type="text" id="plaats">
+        </div>
+        <div class="form-group">
           <label>Leverfrequentie *</label>
           <select id="frequentie">
             <option value="dagelijks">Dagelijks</option>
-            <option value="wekelijks">Wekelijks</option>
+            <option value="wekelijks" selected>Wekelijks</option>
             <option value="maandelijks">Maandelijks</option>
           </select>
         </div>
       </div>
+      <div class="modal-actions">
         <button type="button" class="btn-cancel" id="cancelModal">Annuleren</button>
         <button type="submit" class="btn-save">Toevoegen</button>
       </div>
@@ -301,72 +358,131 @@ tbody tr:hover {
 </div>
 
 <script>
-const modal = document.getElementById("modal");
-document.getElementById("openModal").onclick = () => modal.style.display = "flex";
-document.getElementById("closeModal").onclick = () => modal.style.display = "none";
-document.getElementById("cancelModal").onclick = () => modal.style.display = "none";
+// =====================================================
+// JAVASCRIPT DEEL - Maakt de pagina interactief
+// =====================================================
 
-window.onclick = (e) => {
-  if (e.target === modal) {
-    modal.style.display = "none";
-  }
+// Haal HTML elementen op die we nodig hebben
+const modal = document.getElementById("modal");          // Het popup venster
+const form = document.querySelector('form');                // Het formulier
+
+// =====================================================
+// MODAL (POPUP) FUNCTIONALITEIT
+// =====================================================
+
+// Open de modal als je op "+ Nieuwe Leverancier" klikt
+document.getElementById("openModal").onclick = () => {
+    modal.style.display = "flex";
 };
 
-// Form submit handler - naar database
-const form = document.querySelector('form');
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  const leverancier = {
-    bedrijfsnaam: document.getElementById('bedrijf').value,
-    adres: document.getElementById('adres').value,
-    contactpersoon: document.getElementById('contact').value,
-    email: document.getElementById('email').value,
-    telefoonnummer: document.getElementById('telefoon').value,
-    eerstvolgende_levering: document.getElementById('levering').value,
-    leverfrequentie: document.getElementById('frequentie').value
-  };
-  
-  try {
-    const response = await fetch('actions/addLeverancier.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(leverancier)
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      alert('Leverancier opgeslagen in database!');
-      location.reload();
-    } else {
-      alert('Fout: ' + result.message);
+// Sluit de modal als je op X klikt
+document.getElementById("closeModal").onclick = () => {
+    modal.style.display = "none";
+};
+
+// Sluit de modal als je op Annuleren klikt
+document.getElementById("cancelModal").onclick = () => {
+    modal.style.display = "none";
+};
+
+// Sluit de modal als je ergens buiten de popup klikt
+window.onclick = (e) => {
+    if (e.target === modal) {
+        modal.style.display = "none";
     }
-  } catch (error) {
-    alert('Er is een fout opgetreden: ' + error.message);
-  }
+};
+
+// =====================================================
+// FORMULIER VERSTUREN NAAR DATABASE
+// =====================================================
+form.addEventListener('submit', async (e) => {
+    // Voorkom dat het formulier op de normale manier wordt verstuurd
+    e.preventDefault();
+    
+    // Verzamel alle waarden uit het formulier
+    const leverancier = {
+        bedrijfsnaam: document.getElementById('bedrijf').value,
+        adres: document.getElementById('adres').value,
+        contactpersoon: document.getElementById('contact').value,
+        email: document.getElementById('email').value,
+        telefoonnummer: document.getElementById('telefoon').value,
+        postcode: document.getElementById('postcode').value,
+        plaats: document.getElementById('plaats').value,
+        leverfrequentie: document.getElementById('frequentie').value
+    };
+    
+    try {
+        // Stuur de data naar addLeverancier.php via AJAX (fetch API)
+        const response = await fetch('actions/addLeverancier.php', {
+            method: 'POST',                           // POST = verstuur data
+            headers: { 'Content-Type': 'application/json' },  // We sturen JSON
+            body: JSON.stringify(leverancier)         // Zet het object om naar JSON string
+        });
+        
+        // Haal het resultaat op als JSON
+        const result = await response.json();
+        
+        // Controleer of het gelukt is
+        if (result.success) {
+            alert('Leverancier opgeslagen in database!');
+            location.reload();  // Herlaad de pagina om de nieuwe leverancier te zien
+        } else {
+            alert('Fout: ' + result.message);
+        }
+    } catch (error) {
+        alert('Er is een fout opgetreden: ' + error.message);
+    }
 });
 
-function addRowToTable(lev) {
-  const tbody = document.querySelector('tbody');
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td>${lev.bedrijf}</td>
-    <td>${lev.contact}</td>
-    <td>${lev.email}</td>
-    <td>${lev.telefoon}</td>
-    <td>${lev.levering}</td>
-    <td>${lev.frequentie}</td>
-    <td class="actions"><span class="edit"></span><span class="delete"></span></td>
-  `;
-  tbody.appendChild(tr);
+// =====================================================
+// LEVERANCIER VERWIJDEREN
+// =====================================================
+async function deleteLeverancier(id) {
+    // Vraag eerst om bevestiging
+    if (!confirm('Weet je zeker dat je deze leverancier wilt verwijderen?')) return;
+    
+    try {
+        // Stuur verwijder request naar de server
+        const response = await fetch('actions/deleteLeverancier.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id })  // Alleen het ID is nodig
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Verwijder de rij uit de tabel (zonder pagina te herladen)
+            document.querySelector(`tr[data-id="${id}"]`).remove();
+            alert('Leverancier verwijderd!');
+        } else {
+            alert('Fout: ' + result.message);
+        }
+    } catch (error) {
+        alert('Er is een fout opgetreden: ' + error.message);
+    }
 }
 
-// Load saved leveranciers on page load
-window.addEventListener('load', () => {
-  const leveranciers = JSON.parse(localStorage.getItem('leveranciers')) || [];
-  leveranciers.forEach(addRowToTable);
-});
+// =====================================================
+// LEVERANCIER BEWERKEN (vullen van formulier)
+// =====================================================
+function editLeverancier(id) {
+    // Vind de juiste rij in de tabel
+    const row = document.querySelector(`tr[data-id="${id}"]`);
+    const cells = row.querySelectorAll('td');
+    
+    // Vul het formulier met de bestaande waarden
+    document.getElementById('bedrijf').value = cells[0].textContent;   // Bedrijfsnaam
+    document.getElementById('contact').value = cells[1].textContent;  // Contactpersoon
+    document.getElementById('email').value = cells[2].textContent;    // Email
+    document.getElementById('telefoon').value = cells[3].textContent; // Telefoon
+    document.getElementById('adres').value = cells[4].textContent;    // Adres
+    document.getElementById('postcode').value = cells[5].textContent; // Postcode
+    document.getElementById('plaats').value = cells[6].textContent;   // Plaats
+    
+    // Open de modal
+    modal.style.display = "flex";
+}
 </script>
 
 </body>
