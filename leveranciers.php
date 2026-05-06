@@ -1,7 +1,4 @@
 <?php
-// =====================================================
-// LEVERANCIERS BEHEER PAGINA
-// =====================================================
 // Deze pagina toont alle leveranciers uit de database
 // en laat je nieuwe leveranciers toevoegen
 
@@ -14,9 +11,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 // Verbind met de database
 require_once __DIR__ . '/common/dbconnection.php';
 
-// =====================================================
-// STAP 1: Haal alle leveranciers op uit de database
-// =====================================================
 $sql = "
     SELECT 
         l.idLeverancier,
@@ -49,9 +43,6 @@ while ($row = mysqli_fetch_assoc($result)) {
 // Sluit de database verbinding
 $conn->close();
 
-// =====================================================
-// HELPER FUNCTIE: Formatteer datum voor weergave
-// =====================================================
 function formatDatum($datum) {
     // Als er geen datum is, toon "Geen gepland"
     if (!$datum) return 'Geen gepland';
@@ -268,13 +259,13 @@ tbody tr:hover {
       <tbody id="leveranciersTableBody">
         <?php foreach ($leveranciers as $lev): ?>
         <tr data-id="<?= $lev['idLeverancier'] ?>">
-          <td><?= htmlspecialchars($lev['bedrijfsnaam']) ?></td>
-          <td><?= htmlspecialchars($lev['contactpersoon']) ?></td>
-          <td><?= htmlspecialchars($lev['email']) ?></td>
-          <td><?= htmlspecialchars($lev['telefoonnummer']) ?></td>
-          <td><?= htmlspecialchars($lev['adres']) ?></td>
-          <td><?= htmlspecialchars($lev['postcode']) ?></td>
-          <td><?= htmlspecialchars($lev['plaats']) ?></td>
+          <td><?= htmlspecialchars($lev['bedrijfsnaam'] ?? '') ?></td>
+          <td><?= htmlspecialchars($lev['contactpersoon'] ?? '') ?></td>
+          <td><?= htmlspecialchars($lev['email'] ?? '') ?></td>
+          <td><?= htmlspecialchars($lev['telefoonnummer'] ?? '') ?></td>
+          <td><?= htmlspecialchars($lev['adres'] ?? '') ?></td>
+          <td><?= htmlspecialchars($lev['postcode'] ?? '') ?></td>
+          <td><?= htmlspecialchars($lev['plaats'] ?? '') ?></td>
           <td><?= formatDatum($lev['eerstvolgende_levering']) ?></td>
           <td class="actions">
             <span class="edit" onclick="editLeverancier(<?= $lev['idLeverancier'] ?>)"></span>
@@ -358,24 +349,17 @@ tbody tr:hover {
 </div>
 
 <script>
-// =====================================================
-// JAVASCRIPT DEEL - Maakt de pagina interactief
-// =====================================================
 
 // Haal HTML elementen op die we nodig hebben
 const modal = document.getElementById("modal");          // Het popup venster
 const form = document.querySelector('form');                // Het formulier
-
-// =====================================================
-// MODAL (POPUP) FUNCTIONALITEIT
-// =====================================================
 
 // Open de modal als je op "+ Nieuwe Leverancier" klikt
 document.getElementById("openModal").onclick = () => {
     modal.style.display = "flex";
 };
 
-// Sluit de modal als je op X klikt
+// Sluit de modal als je op het xje klikt
 document.getElementById("closeModal").onclick = () => {
     modal.style.display = "none";
 };
@@ -385,16 +369,13 @@ document.getElementById("cancelModal").onclick = () => {
     modal.style.display = "none";
 };
 
-// Sluit de modal als je ergens buiten de popup klikt
+// Sluit de modal als je ergens buiten de model zelf klikt
 window.onclick = (e) => {
     if (e.target === modal) {
         modal.style.display = "none";
     }
 };
 
-// =====================================================
-// FORMULIER VERSTUREN NAAR DATABASE
-// =====================================================
 form.addEventListener('submit', async (e) => {
     // Voorkom dat het formulier op de normale manier wordt verstuurd
     e.preventDefault();
@@ -434,9 +415,6 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-// =====================================================
-// LEVERANCIER VERWIJDEREN
-// =====================================================
 async function deleteLeverancier(id) {
     // Vraag eerst om bevestiging
     if (!confirm('Weet je zeker dat je deze leverancier wilt verwijderen?')) return;
@@ -463,9 +441,6 @@ async function deleteLeverancier(id) {
     }
 }
 
-// =====================================================
-// LEVERANCIER BEWERKEN (vullen van formulier)
-// =====================================================
 function editLeverancier(id) {
     // Vind de juiste rij in de tabel
     const row = document.querySelector(`tr[data-id="${id}"]`);
