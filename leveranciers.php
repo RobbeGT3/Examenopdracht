@@ -142,6 +142,24 @@ tbody tr:hover {
 .edit { color: #2c4a6b; }
 .delete { color: red; }
 
+.btn-edit, .btn-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 5px;
+}
+
+.btn-edit:hover {
+    background: #e3f2fd;
+    border-radius: 4px;
+}
+
+.btn-delete:hover {
+    background: #ffebee;
+    border-radius: 4px;
+}
+
 
 .modal-overlay {
   position: fixed;
@@ -268,8 +286,8 @@ tbody tr:hover {
           <td><?= htmlspecialchars($lev['plaats'] ?? '') ?></td>
           <td><?= formatDatum($lev['eerstvolgende_levering']) ?></td>
           <td class="actions">
-            <span class="edit" onclick="editLeverancier(<?= $lev['idLeverancier'] ?>)"></span>
-            <span class="delete" onclick="deleteLeverancier(<?= $lev['idLeverancier'] ?>)"></span>
+            <button class="btn-edit" onclick="editLeverancier(<?= $lev['idLeverancier'] ?>)" title="Bewerken">✏️</button>
+            <button class="btn-delete" onclick="deleteLeverancier(<?= $lev['idLeverancier'] ?>)" title="Verwijderen">🗑️</button>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -342,8 +360,12 @@ tbody tr:hover {
 
       <div class="form-row">
         <div class="form-group">
-          <label>Eerste Levering *</label>
+          <label>Eerste Levering Datum *</label>
           <input type="date" id="eersteLevering">
+        </div>
+        <div class="form-group">
+          <label>Eerste Levering Tijd *</label>
+          <input type="time" id="eersteLeveringTijd" value="09:00">
         </div>
       </div>
       <div class="modal-actions">
@@ -363,6 +385,11 @@ const form = document.querySelector('form');                // Het formulier
 
 // Open de modal als je op "+ Nieuwe Leverancier" klikt
 document.getElementById("openModal").onclick = () => {
+    // Reset het formulier voor een nieuwe leverancier
+    form.reset();
+    delete form.dataset.editId; // Verwijder edit ID zodat we weten dat dit nieuw is
+    document.querySelector('.modal-header h3').textContent = 'Nieuwe Leverancier';
+    document.querySelector('.btn-save').textContent = 'Toevoegen';
     modal.style.display = "flex";
 };
 
@@ -388,6 +415,15 @@ form.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     // Verzamel alle waarden uit het formulier
+    // Combineer datum en tijd voor eerste levering
+    const leveringDatum = document.getElementById('eersteLevering').value;
+    const leveringTijd = document.getElementById('eersteLeveringTijd').value;
+    const eersteLevering = leveringDatum + ' ' + leveringTijd;
+    
+    // Check of we een bestaande leverancier bewerken (dan hebben we een ID)
+    const isEditing = form.dataset.editId ? true : false;
+    const leverancierId = form.dataset.editId || null;
+    
     const leverancier = {
         bedrijfsnaam: document.getElementById('bedrijf').value,
         adres: document.getElementById('adres').value,
@@ -397,12 +433,22 @@ form.addEventListener('submit', async (e) => {
         postcode: document.getElementById('postcode').value,
         plaats: document.getElementById('plaats').value,
         leverfrequentie: document.getElementById('frequentie').value,
-        eersteLevering: document.getElementById('eersteLevering').value
+        eersteLevering: eersteLevering
     };
     
+    // Als we bewerken, voeg het ID toe
+    if (isEditing) {
+        leverancier.id = leverancierId;
+    }
+    
     try {
-        // Stuur de data naar addLeverancier.php via AJAX (fetch API)
-        const response = await fetch('actions/addLeverancier.php', {
+        // Kies de juiste URL: edit voor bewerken, add voor nieuw
+        const url = isEditing 
+            ? 'actions/leverancier/editLeverancier.php' 
+            : 'actions/addLeverancier.php';
+        
+        // Stuur de data naar de server via AJAX (fetch API)
+        const response = await fetch(url, {
             method: 'POST',                           // POST = verstuur data
             headers: { 'Content-Type': 'application/json' },  // We sturen JSON
             body: JSON.stringify(leverancier)         // Zet het object om naar JSON string
@@ -428,8 +474,8 @@ async function deleteLeverancier(id) {
     if (!confirm('Weet je zeker dat je deze leverancier wilt verwijderen?')) return;
     
     try {
-        // Stuur verwijder request naar de server
-        const response = await fetch('actions/deleteLeverancier.php', {
+        // Stuur verwijder request naar de server (juiste URL)
+        const response = await fetch('actions/leverancier/deleteLeverancier.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: id })  // Alleen het ID is nodig
@@ -462,6 +508,13 @@ function editLeverancier(id) {
     document.getElementById('adres').value = cells[4].textContent;    // Adres
     document.getElementById('postcode').value = cells[5].textContent; // Postcode
     document.getElementById('plaats').value = cells[6].textContent;   // Plaats
+    
+    // Sla het ID op zodat we weten dat we bewerken, niet toevoegen
+    form.dataset.editId = id;
+    
+    // Verander de titel en knoptekst
+    document.querySelector('.modal-header h3').textContent = 'Leverancier Bewerken';
+    document.querySelector('.btn-save').textContent = 'Opslaan';
     
     // Open de modal
     modal.style.display = "flex";
