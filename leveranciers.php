@@ -160,31 +160,6 @@ tbody tr:hover {
     border-radius: 4px;
 }
 
-/* Datum + Tijd combinatie in 1 balk */
-.datum-tijd-combi {
-    flex: 1;
-}
-
-.datum-tijd-balk {
-    display: flex;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.datum-tijd-balk input[type="date"] {
-    flex: 2;
-    border: none;
-    border-right: 1px solid #ccc;
-    padding: 10px;
-}
-
-.datum-tijd-balk input[type="time"] {
-    flex: 1;
-    border: none;
-    padding: 10px;
-}
-
 
 .modal-overlay {
   position: fixed;
@@ -384,12 +359,9 @@ tbody tr:hover {
       </div>
 
       <div class="form-row">
-        <div class="form-group datum-tijd-combi">
+        <div class="form-group">
           <label>Eerste Levering *</label>
-          <div class="datum-tijd-balk">
-            <input type="date" id="eersteLevering">
-            <input type="time" id="eersteLeveringTijd" value="09:00">
-          </div>
+          <input type="datetime-local" id="eersteLevering" value="2025-01-01T09:00">
         </div>
       </div>
       <div class="modal-actions">
@@ -439,10 +411,8 @@ form.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     // Verzamel alle waarden uit het formulier
-    // Combineer datum en tijd voor eerste levering
-    const leveringDatum = document.getElementById('eersteLevering').value;
-    const leveringTijd = document.getElementById('eersteLeveringTijd').value;
-    const eersteLevering = leveringDatum + ' ' + leveringTijd;
+    // Haal datum+tijd op uit het datetime-local veld (format: YYYY-MM-DDTHH:MM)
+    const eersteLevering = document.getElementById('eersteLevering').value.replace('T', ' ');
     
     // Check of we een bestaande leverancier bewerken (dan hebben we een ID)
     const isEditing = form.dataset.editId ? true : false;
@@ -505,7 +475,18 @@ async function deleteLeverancier(id) {
             body: JSON.stringify({ id: id })  // Alleen het ID is nodig
         });
         
-        const result = await response.json();
+        // Debug: toon de raw response in console
+        const responseText = await response.text();
+        console.log('Server response:', responseText);
+        
+        // Parse de JSON response
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (e) {
+            alert('Ongeldige response van server:\n' + responseText.substring(0, 200));
+            return;
+        }
         
         if (result.success) {
             // Verwijder de rij uit de tabel (zonder pagina te herladen)
@@ -516,6 +497,7 @@ async function deleteLeverancier(id) {
         }
     } catch (error) {
         alert('Er is een fout opgetreden: ' + error.message);
+        console.error('Delete error:', error);
     }
 }
 
@@ -532,6 +514,18 @@ function editLeverancier(id) {
     document.getElementById('adres').value = cells[4].textContent;    // Adres
     document.getElementById('postcode').value = cells[5].textContent; // Postcode
     document.getElementById('plaats').value = cells[6].textContent;   // Plaats
+    
+    // Converteer de getoonde datum (bv "15-05-2025 14:30") naar datetime-local formaat ("2025-05-15T14:30")
+    const datumText = cells[7].textContent.trim(); // Eerstvolgende levering kolom
+    if (datumText && datumText !== 'Geen gepland') {
+        const parts = datumText.split(' ');
+        if (parts.length === 2) {
+            const [dag, maand, jaar] = parts[0].split('-');
+            const tijd = parts[1];
+            const datetimeLocal = `${jaar}-${maand}-${dag}T${tijd}`;
+            document.getElementById('eersteLevering').value = datetimeLocal;
+        }
+    }
     
     // Sla het ID op zodat we weten dat we bewerken, niet toevoegen
     form.dataset.editId = id;
