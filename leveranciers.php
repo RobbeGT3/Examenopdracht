@@ -507,25 +507,39 @@ function editLeverancier(id) {
     const cells = row.querySelectorAll('td');
     
     // Vul het formulier met de bestaande waarden
-    document.getElementById('bedrijf').value = cells[0].textContent;   // Bedrijfsnaam
-    document.getElementById('contact').value = cells[1].textContent;  // Contactpersoon
-    document.getElementById('email').value = cells[2].textContent;    // Email
-    document.getElementById('telefoon').value = cells[3].textContent; // Telefoon
-    document.getElementById('adres').value = cells[4].textContent;    // Adres
-    document.getElementById('postcode').value = cells[5].textContent; // Postcode
-    document.getElementById('plaats').value = cells[6].textContent;   // Plaats
+    document.getElementById('bedrijf').value = cells[0].textContent.trim();   // Bedrijfsnaam
+    document.getElementById('contact').value = cells[1].textContent.trim();  // Contactpersoon
+    document.getElementById('email').value = cells[2].textContent.trim();    // Email
+    document.getElementById('telefoon').value = cells[3].textContent.trim(); // Telefoon
+    document.getElementById('adres').value = cells[4].textContent.trim();    // Adres
+    document.getElementById('postcode').value = cells[5].textContent.trim(); // Postcode
+    document.getElementById('plaats').value = cells[6].textContent.trim();   // Plaats
     
     // Converteer de getoonde datum (bv "15-05-2025 14:30") naar datetime-local formaat ("2025-05-15T14:30")
     const datumText = cells[7].textContent.trim(); // Eerstvolgende levering kolom
-    if (datumText && datumText !== 'Geen gepland') {
+    const datetimeInput = document.getElementById('eersteLevering');
+    
+    if (datumText && datumText !== 'Geen' && datumText !== 'Geen gepland' && datumText !== '') {
         const parts = datumText.split(' ');
         if (parts.length === 2) {
             const [dag, maand, jaar] = parts[0].split('-');
             const tijd = parts[1];
-            const datetimeLocal = `${jaar}-${maand}-${dag}T${tijd}`;
-            document.getElementById('eersteLevering').value = datetimeLocal;
+            // Zorg dat dag/maand/jaar 2 cijfers hebben voor het formaat
+            const dagFormat = dag.padStart(2, '0');
+            const maandFormat = maand.padStart(2, '0');
+            const jaarFormat = jaar.length === 2 ? '20' + jaar : jaar;
+            const datetimeLocal = `${jaarFormat}-${maandFormat}-${dagFormat}T${tijd}`;
+            datetimeInput.value = datetimeLocal;
+            console.log('Datum gezet:', datetimeLocal);
+        } else {
+            datetimeInput.value = '';
         }
+    } else {
+        datetimeInput.value = '';
     }
+    
+    // Reset frequentie naar default (wekelijks) - kan aangepast worden door gebruiker
+    document.getElementById('frequentie').value = 'wekelijks';
     
     // Sla het ID op zodat we weten dat we bewerken, niet toevoegen
     form.dataset.editId = id;
