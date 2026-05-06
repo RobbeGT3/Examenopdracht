@@ -7,7 +7,7 @@ $type = $_GET['type'] ?? 'productcategorie';
 
 $currentPage = 'rapportages.php';
 
-// Dummy data (nu leeg zoals screenshot)
+// Dummy data
 $data = [];
 ?>
 <!DOCTYPE html>
