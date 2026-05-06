@@ -287,7 +287,7 @@ tbody tr:hover {
           <td><?= formatDatum($lev['eerstvolgende_levering']) ?></td>
           <td class="actions">
             <button class="btn-edit" onclick="editLeverancier(<?= $lev['idLeverancier'] ?>)" title="Bewerken">✏️</button>
-            <button class="btn-delete" onclick="deleteLeverancier(<?= $lev['idLeverancier'] ?>)" title="Verwijderen">🗑️</button>
+            <button class="btn-delete" onclick="alert('DEBUG: Prullenbak geklikt! ID=<?= $lev['idLeverancier'] ?>'); deleteLeverancier(<?= $lev['idLeverancier'] ?>);" title="Verwijderen">🗑️</button>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -375,6 +375,9 @@ tbody tr:hover {
 
 <script>
 
+// TEST: Laat zien dat JavaScript werkt
+console.log('JavaScript is geladen!');
+
 // Haal HTML elementen op die we nodig hebben
 const modal = document.getElementById("modal");          // Het popup venster
 const form = document.querySelector('form');                // Het formulier
@@ -383,6 +386,8 @@ const form = document.querySelector('form');                // Het formulier
 document.getElementById("openModal").onclick = () => {
     // Reset het formulier voor een nieuwe leverancier
     form.reset();
+    // Maak het datum/tijd veld leeg (form.reset() zet het terug naar default value)
+    document.getElementById('eersteLevering').value = '';
     delete form.dataset.editId; // Verwijder edit ID zodat we weten dat dit nieuw is
     document.querySelector('.modal-header h3').textContent = 'Nieuwe Leverancier';
     document.querySelector('.btn-save').textContent = 'Toevoegen';
@@ -392,17 +397,23 @@ document.getElementById("openModal").onclick = () => {
 // Sluit de modal als je op het xje klikt
 document.getElementById("closeModal").onclick = () => {
     modal.style.display = "none";
+    // Maak het datum/tijd veld leeg na sluiten
+    document.getElementById('eersteLevering').value = '';
 };
 
 // Sluit de modal als je op Annuleren klikt
 document.getElementById("cancelModal").onclick = () => {
     modal.style.display = "none";
+    // Maak het datum/tijd veld leeg na annuleren
+    document.getElementById('eersteLevering').value = '';
 };
 
 // Sluit de modal als je ergens buiten de model zelf klikt
 window.onclick = (e) => {
     if (e.target === modal) {
         modal.style.display = "none";
+        // Maak het datum/tijd veld leeg na sluiten
+        document.getElementById('eersteLevering').value = '';
     }
 };
 
@@ -463,42 +474,37 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-async function deleteLeverancier(id) {
-    // Vraag eerst om bevestiging
-    if (!confirm('Weet je zeker dat je deze leverancier wilt verwijderen?')) return;
+function deleteLeverancier(id) {
+    alert('TEST: Delete functie werkt! ID=' + id);
     
-    try {
-        // Stuur verwijder request naar de server (juiste URL)
-        const response = await fetch('actions/leverancier/deleteLeverancier.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: id })  // Alleen het ID is nodig
-        });
-        
-        // Debug: toon de raw response in console
-        const responseText = await response.text();
-        console.log('Server response:', responseText);
-        
-        // Parse de JSON response
-        let result;
-        try {
-            result = JSON.parse(responseText);
-        } catch (e) {
-            alert('Ongeldige response van server:\n' + responseText.substring(0, 200));
-            return;
-        }
-        
-        if (result.success) {
-            // Verwijder de rij uit de tabel (zonder pagina te herladen)
-            document.querySelector(`tr[data-id="${id}"]`).remove();
-            alert('Leverancier verwijderd!');
-        } else {
-            alert('Fout: ' + result.message);
-        }
-    } catch (error) {
-        alert('Er is een fout opgetreden: ' + error.message);
-        console.error('Delete error:', error);
+    if (!confirm('Weet je zeker dat je deze leverancier wilt verwijderen?')) {
+        return;
     }
+    
+    // Simpele versie zonder async/await om te testen
+    fetch('actions/leverancier/deleteLeverancier.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id })
+    })
+    .then(response => response.text())
+    .then(text => {
+        alert('Server antwoord: ' + text.substring(0, 100));
+        try {
+            const result = JSON.parse(text);
+            if (result.success) {
+                document.querySelector(`tr[data-id="${id}"]`).remove();
+                alert('Leverancier verwijderd!');
+            } else {
+                alert('Fout: ' + result.message);
+            }
+        } catch (e) {
+            alert('JSON parse fout: ' + text.substring(0, 100));
+        }
+    })
+    .catch(error => {
+        alert('Fetch fout: ' + error.message);
+    });
 }
 
 function editLeverancier(id) {
@@ -515,28 +521,9 @@ function editLeverancier(id) {
     document.getElementById('postcode').value = cells[5].textContent.trim(); // Postcode
     document.getElementById('plaats').value = cells[6].textContent.trim();   // Plaats
     
-    // Converteer de getoonde datum (bv "15-05-2025 14:30") naar datetime-local formaat ("2025-05-15T14:30")
-    const datumText = cells[7].textContent.trim(); // Eerstvolgende levering kolom
-    const datetimeInput = document.getElementById('eersteLevering');
-    
-    if (datumText && datumText !== 'Geen' && datumText !== 'Geen gepland' && datumText !== '') {
-        const parts = datumText.split(' ');
-        if (parts.length === 2) {
-            const [dag, maand, jaar] = parts[0].split('-');
-            const tijd = parts[1];
-            // Zorg dat dag/maand/jaar 2 cijfers hebben voor het formaat
-            const dagFormat = dag.padStart(2, '0');
-            const maandFormat = maand.padStart(2, '0');
-            const jaarFormat = jaar.length === 2 ? '20' + jaar : jaar;
-            const datetimeLocal = `${jaarFormat}-${maandFormat}-${dagFormat}T${tijd}`;
-            datetimeInput.value = datetimeLocal;
-            console.log('Datum gezet:', datetimeLocal);
-        } else {
-            datetimeInput.value = '';
-        }
-    } else {
-        datetimeInput.value = '';
-    }
+    // Laat het datum/tijd veld LEEG bij bewerken zodat gebruiker zelf kan kiezen
+    // De huidige eerstvolgende levering wordt alleen ter info getoond in de tabel
+    document.getElementById('eersteLevering').value = '';
     
     // Reset frequentie naar default (wekelijks) - kan aangepast worden door gebruiker
     document.getElementById('frequentie').value = 'wekelijks';
