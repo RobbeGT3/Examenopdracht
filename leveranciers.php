@@ -339,6 +339,13 @@ tbody tr:hover {
           </select>
         </div>
       </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Eerste Levering *</label>
+          <input type="date" id="eersteLevering">
+        </div>
+      </div>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" id="cancelModal">Annuleren</button>
         <button type="submit" class="btn-save">Toevoegen</button>
@@ -389,7 +396,8 @@ form.addEventListener('submit', async (e) => {
         telefoonnummer: document.getElementById('telefoon').value,
         postcode: document.getElementById('postcode').value,
         plaats: document.getElementById('plaats').value,
-        leverfrequentie: document.getElementById('frequentie').value
+        leverfrequentie: document.getElementById('frequentie').value,
+        eersteLevering: document.getElementById('eersteLevering').value
     };
     
     try {

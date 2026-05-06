@@ -1,7 +1,5 @@
 <?php
-// =====================================================
-// ADD LEVERANCIER - PHP ACTION FILE
-// =====================================================
+
 // Dit bestand ontvangt data van het formulier en slaat
 // het op in de database + maakt leveringen aan
 
@@ -14,28 +12,19 @@ require_once __DIR__ . '/../common/dbconnection.php';
 // Zeg dat we JSON terugsturen (voor AJAX)
 header('Content-Type: application/json');
 
-// =====================================================
-// STAP 1: Ontvang de data van JavaScript
-// =====================================================
 // php://input = lees de "raw" data die is verstuurd
 $rawData = file_get_contents("php://input");
 
 // Zet de JSON data om naar een PHP array
 $data = json_decode($rawData, true);
 
-// =====================================================
-// STAP 2: Controleer of alle verplichte velden er zijn
-// =====================================================
+
 if (!isset($data['bedrijfsnaam'], $data['contactpersoon'], $data['email'], $data['telefoonnummer'])) {
     // Stuur een foutmelding terug
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Ontbrekende verplichte velden']);
     exit; // Stop hier
 }
-
-// =====================================================
-// STAP 3: Sla de leverancier op in de database
-// =====================================================
 $stmt = $conn->prepare("
     INSERT INTO Leverancier 
     (bedrijfsnaam, contactpersoon, `e-mailadres`, telefoonnummer, adres, postcode, plaats)
@@ -58,19 +47,23 @@ $stmt->bind_param(
 if ($stmt->execute()) {
     // Haal het ID op van de zojuist toegevoegde leverancier
     $leverancierId = $stmt->insert_id;
-    
-    // =====================================================
-    // STAP 4: Maak leveringsdatums aan voor 3 maanden
-    // =====================================================
+
     $stmtLevering = $conn->prepare("
         INSERT INTO leveringen (Leverancier_idLeverancier, leverings_datum) 
         VALUES (?, ?)
     ");
     
-    // Begin vandaag
-    $startDatum = new DateTime();
-    // Eindig over 3 maanden
-    $eindDatum = (new DateTime())->modify('+3 months');
+    // Gebruik de gekozen startdatum uit het formulier, of vandaag als niet ingevuld
+    $startDatumString = $data['eersteLevering'] ?? null;
+    if ($startDatumString) {
+        $startDatum = new DateTime($startDatumString);
+    } else {
+        $startDatum = new DateTime(); // Vandaag
+    }
+    
+    // Kopieer startdatum en tel er 3 maanden bij op voor het eind
+    $eindDatum = clone $startDatum;
+    $eindDatum->modify('+3 months');
     
     // Bepaal hoe vaak we leveren (dagelijks/wekelijks/maandelijks)
     $frequentie = $data['leverfrequentie'] ?? 'wekelijks';
@@ -107,9 +100,6 @@ if ($stmt->execute()) {
     
     $stmtLevering->close();
     
-    // =====================================================
-    // STAP 5: Stuur succesmelding terug naar JavaScript
-    // =====================================================
     echo json_encode([
         'success' => true, 
         'id' => $leverancierId, 
