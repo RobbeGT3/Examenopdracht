@@ -287,7 +287,9 @@ tbody tr:hover {
           <td><?= formatDatum($lev['eerstvolgende_levering']) ?></td>
           <td class="actions">
             <button class="btn-edit" onclick="editLeverancier(<?= $lev['idLeverancier'] ?>)" title="Bewerken">✏️</button>
-            <button class="btn-delete" type="button" onclick="if(confirm('Leverancier verwijderen?')){fetch('actions/leverancier/deleteLeverancier.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:<?= $lev['idLeverancier'] ?>})}).then(r=>r.json()).then(d=>{if(d.success){document.querySelector('tr[data-id=\'<?= $lev['idLeverancier'] ?>\']').remove();alert('Verwijderd!');}else{alert(d.message);}}).catch(e=>alert('Fout: '+e));}" title="Verwijderen">🗑️</button>
+            <!-- <button class="btn-delete" type="button" onclick="if(confirm('Leverancier verwijderen?')){fetch('actions/leverancier/deleteLeverancier.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:<?= $lev['idLeverancier'] ?>})}).then(r=>r.json()).then(d=>{if(d.success){document.querySelector('tr[data-id=\'<?= $lev['idLeverancier'] ?>\']').remove();alert('Verwijderd!');}else{alert(d.message);}}).catch(e=>alert('Fout: '+e));}" title="Verwijderen">🗑️</button> -->
+            <button class="btn-delete" type="button" onclick="deleteLeverancier(<?= $lev['idLeverancier'] ?>)" title="Verwijderen">🗑️</button>
+
           </td>
         </tr>
         <?php endforeach; ?>
