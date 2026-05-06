@@ -3,45 +3,60 @@
 // Dit bestand ontvangt data van het formulier en slaat
 // het op in de database + maakt leveringen aan
 
+// Zet PHP errors uit zodat ze de JSON niet verstoren
+error_reporting(0);
+ini_set('display_errors', 0);
+
 // Start PHP sessie
 session_start();
-
-// Verbind met database
-require_once __DIR__ . '/../common/dbconnection.php';
 
 // Zeg dat we JSON terugsturen (voor AJAX)
 header('Content-Type: application/json');
 
-// php://input = lees de "raw" data die is verstuurd
-$rawData = file_get_contents("php://input");
+try {
+    // Verbind met database
+    require_once __DIR__ . '/../common/dbconnection.php';
+    
+    // php://input = lees de "raw" data die is verstuurd
+    $rawData = file_get_contents("php://input");
+    
+    // Zet de JSON data om naar een PHP array
+    $data = json_decode($rawData, true);
+    
+    // Controleer of JSON geldig was
+    if (!$data) {
+        echo json_encode(['success' => false, 'message' => 'Ongeldige JSON data ontvangen']);
+        exit;
+    }
+    
+    // Controleer verplichte velden
+    if (empty($data['bedrijfsnaam']) || empty($data['contactpersoon']) || empty($data['email']) || empty($data['telefoonnummer'])) {
+        echo json_encode(['success' => false, 'message' => 'Vul alle verplichte velden in']);
+        exit;
+    }
+    
+    // Zet lege strings als default voor optionele velden
+    $adres = $data['adres'] ?? '';
+    $postcode = $data['postcode'] ?? '';
+    $plaats = $data['plaats'] ?? '';
 
-// Zet de JSON data om naar een PHP array
-$data = json_decode($rawData, true);
-
-
-if (!isset($data['bedrijfsnaam'], $data['contactpersoon'], $data['email'], $data['telefoonnummer'])) {
-    // Stuur een foutmelding terug
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Ontbrekende verplichte velden']);
-    exit; // Stop hier
-}
-$stmt = $conn->prepare("
-    INSERT INTO Leverancier 
-    (bedrijfsnaam, contactpersoon, `e-mailadres`, telefoonnummer, adres, postcode, plaats)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-");
-
-// "sssssss" = 7 strings (type van elke ? parameter)
-$stmt->bind_param(
-    "sssssss",
-    $data['bedrijfsnaam'],
-    $data['contactpersoon'],
-    $data['email'],
-    $data['telefoonnummer'],
-    $data['adres'],
-    $data['postcode'],
-    $data['plaats']
-);
+    $stmt = $conn->prepare("
+        INSERT INTO Leverancier 
+        (bedrijfsnaam, contactpersoon, `e-mailadres`, telefoonnummer, adres, postcode, plaats)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ");
+    
+    // "sssssss" = 7 strings (type van elke ? parameter)
+    $stmt->bind_param(
+        "sssssss",
+        $data['bedrijfsnaam'],
+        $data['contactpersoon'],
+        $data['email'],
+        $data['telefoonnummer'],
+        $adres,
+        $postcode,
+        $plaats
+    );
 
 // Voer de query uit
 if ($stmt->execute()) {
@@ -112,6 +127,11 @@ if ($stmt->execute()) {
 }
 
 // Sluit alles netjes af
-$stmt->close();
-$conn->close();
+    $stmt->close();
+    $conn->close();
+    
+} catch (Exception $e) {
+    // Als er een fout is, stuur JSON terug met de foutmelding
+    echo json_encode(['success' => false, 'message' => 'Fout: ' . $e->getMessage()]);
+}
 ?>
