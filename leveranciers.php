@@ -287,7 +287,7 @@ tbody tr:hover {
           <td><?= formatDatum($lev['eerstvolgende_levering']) ?></td>
           <td class="actions">
             <button class="btn-edit" onclick="editLeverancier(<?= $lev['idLeverancier'] ?>)" title="Bewerken">✏️</button>
-            <button class="btn-delete" onclick="deleteLeverancier(<?= $lev['idLeverancier'] ?>)" title="Verwijderen">🗑️</button>
+            <button class="btn-delete" type="button" onclick="if(confirm('Leverancier verwijderen?')){fetch('actions/leverancier/deleteLeverancier.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:<?= $lev['idLeverancier'] ?>})}).then(r=>r.json()).then(d=>{if(d.success){document.querySelector('tr[data-id=\'<?= $lev['idLeverancier'] ?>\']').remove();alert('Verwijderd!');}else{alert(d.message);}}).catch(e=>alert('Fout: '+e));}" title="Verwijderen">🗑️</button>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -475,19 +475,16 @@ form.addEventListener('submit', async (e) => {
 });
 
 function deleteLeverancier(id) {
-    // Vraag om bevestiging
-    if (!confirm('Weet je zeker dat je deze leverancier wilt verwijderen?')) {
-        return;
-    }
-    
     // Stuur verwijder request naar de server
     fetch('actions/leverancier/deleteLeverancier.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: id })
     })
-    .then(response => response.json())
-    .then(result => {
+    .then(response => response.text())
+    .then(text => {
+        console.log('Server response:', text);
+        const result = JSON.parse(text);
         if (result.success) {
             // Verwijder de rij uit de tabel (zonder pagina te herladen)
             document.querySelector(`tr[data-id="${id}"]`).remove();
