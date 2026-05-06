@@ -287,7 +287,7 @@ tbody tr:hover {
           <td><?= formatDatum($lev['eerstvolgende_levering']) ?></td>
           <td class="actions">
             <button class="btn-edit" onclick="editLeverancier(<?= $lev['idLeverancier'] ?>)" title="Bewerken">✏️</button>
-            <button class="btn-delete" onclick="alert('DEBUG: Prullenbak geklikt! ID=<?= $lev['idLeverancier'] ?>'); deleteLeverancier(<?= $lev['idLeverancier'] ?>);" title="Verwijderen">🗑️</button>
+            <button class="btn-delete" onclick="deleteLeverancier(<?= $lev['idLeverancier'] ?>)" title="Verwijderen">🗑️</button>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -475,35 +475,30 @@ form.addEventListener('submit', async (e) => {
 });
 
 function deleteLeverancier(id) {
-    alert('TEST: Delete functie werkt! ID=' + id);
-    
+    // Vraag om bevestiging
     if (!confirm('Weet je zeker dat je deze leverancier wilt verwijderen?')) {
         return;
     }
     
-    // Simpele versie zonder async/await om te testen
+    // Stuur verwijder request naar de server
     fetch('actions/leverancier/deleteLeverancier.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: id })
     })
-    .then(response => response.text())
-    .then(text => {
-        alert('Server antwoord: ' + text.substring(0, 100));
-        try {
-            const result = JSON.parse(text);
-            if (result.success) {
-                document.querySelector(`tr[data-id="${id}"]`).remove();
-                alert('Leverancier verwijderd!');
-            } else {
-                alert('Fout: ' + result.message);
-            }
-        } catch (e) {
-            alert('JSON parse fout: ' + text.substring(0, 100));
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // Verwijder de rij uit de tabel (zonder pagina te herladen)
+            document.querySelector(`tr[data-id="${id}"]`).remove();
+            alert('Leverancier verwijderd!');
+        } else {
+            alert('Fout: ' + result.message);
         }
     })
     .catch(error => {
-        alert('Fetch fout: ' + error.message);
+        alert('Er is een fout opgetreden: ' + error.message);
+        console.error('Delete error:', error);
     });
 }
 
