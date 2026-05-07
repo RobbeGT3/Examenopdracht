@@ -5,6 +5,10 @@
 // Start de PHP sessie (nodig voor login)
 session_start();
 
+if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
+    die("Page not available");
+}
+
 // Bepaal welke pagina dit is (voor het menu)
 $currentPage = basename($_SERVER['PHP_SELF']);
 
@@ -533,6 +537,7 @@ function editLeverancier(id) {
     modal.style.display = "flex";
 }
 </script>
+<script src="script/nav.js"></script>
 
 </body>
 </html>

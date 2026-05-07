@@ -177,6 +177,5 @@ require_once  __DIR__. '/common/dbconnection.php';
 
 <script src="script/voedselpakketten.js"></script>
 <script src="script/nav.js"></script>
-<!-- <script src="test2.js"></script> -->
 </body>
 </html>

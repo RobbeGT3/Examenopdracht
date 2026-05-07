@@ -20,7 +20,7 @@ $gebruikers = $result1->fetch_all(MYSQLI_ASSOC);
     <title>Gebruikersbeheer</title>
 
     <link rel="stylesheet" href="styles/styles.css">
-    <link rel="stylesheet" href="gebruiker.css">
+    <link rel="stylesheet" href="styles/gebruiker.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 
@@ -254,7 +254,8 @@ $gebruikers = $result1->fetch_all(MYSQLI_ASSOC);
         </div>
     </div>
 
-    <script src="gebruiker.js"></script>
+    <script src="script/gebruiker.js"></script>
+    <script src="script/nav.js"></script>
 </body>
 
 </html>

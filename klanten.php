@@ -358,5 +358,6 @@ $opgeslagenWensen = $result2->fetch_all(MYSQLI_ASSOC);
   </div>
 
   <script src="script/klanten.js"></script>
+  <script src="script/nav.js"></script>
 </body>
 </html>
