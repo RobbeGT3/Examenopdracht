@@ -6,8 +6,7 @@
         <h1>Voedselbank</h1>
         <p>
           <?php
-            echo $_SESSION['userrole']
-            // echo $_SESSION['username']
+            echo $_SESSION['username']
           ?>
         </p>
       </div>
