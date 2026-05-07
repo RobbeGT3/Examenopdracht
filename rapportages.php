@@ -1,81 +1,163 @@
 <?php
 session_start();
-// if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
-//     die("Page not available");
-// }
+if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
+    die("Page not available");
+}
 
+$currentPage = basename($_SERVER['PHP_SELF']);
 require_once __DIR__ . '/common/dbconnection.php';
 
-// Filters ophalen
-$maand = $_GET['maand'] ?? date('F');
-$jaar = $_GET['jaar'] ?? date('Y');
-$type = $_GET['type'] ?? 'productcategorie';
-
-$currentPage = 'rapportages.php';
-
-// Converteer maand naam naar nummer
-$maandNummers = [
-    'Januari' => '01', 'Februari' => '02', 'Maart' => '03', 'April' => '04',
-    'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Augustus' => '08',
-    'September' => '09', 'Oktober' => '10', 'November' => '11', 'December' => '12'
+// Filters ophalen uit URL
+$maandNamen = [
+    'Januari'=>'01','Februari'=>'02','Maart'=>'03','April'=>'04',
+    'Mei'=>'05','Juni'=>'06','Juli'=>'07','Augustus'=>'08',
+    'September'=>'09','Oktober'=>'10','November'=>'11','December'=>'12'
 ];
-$maandNummer = $maandNummers[$maand] ?? date('m');
+$maand       = $_GET['maand'] ?? 'Mei';
+$jaar        = (int)($_GET['jaar']  ?? date('Y'));
+$type        = $_GET['type']  ?? 'voorraad_per_categorie';
+$maandNummer = $maandNamen[$maand] ?? date('m');
+$startDatum  = "$jaar-$maandNummer-01";
+$eindDatum   = date('Y-m-t', strtotime($startDatum));
 
-// Maak datum bereik voor de geselecteerde maand
-$startDatum = "$jaar-$maandNummer-01";
-$eindDatum = date('Y-m-t', strtotime($startDatum));
-
-// Haal data op uit database - Productcategorie rapport
-$data = [];
-$totaalProducten = 0;
-$totaalAantal = 0;
+$data    = [];
+$summary = [];
+$error   = null;
 
 try {
-    $sql = "
-        SELECT 
-            c.product_categorie as categorie,
-            COUNT(p.idProducts) as aantal_producten,
-            SUM(p.aantal) as totaal_aantal
+
+if ($type === 'voorraad_per_categorie') {
+    $stmt = $conn->prepare("
+        SELECT
+            c.product_categorie AS categorie,
+            COUNT(p.idProducts)            AS aantal_producten,
+            COALESCE(SUM(p.aantal), 0)     AS totaal_voorraad
+        FROM Categories c
+        LEFT JOIN Products p ON p.Categories_idCategories = c.idCategories
+        GROUP BY c.idCategories, c.product_categorie
+        ORDER BY c.product_categorie
+    ");
+    $stmt->execute();
+    $data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    $summary['Totaal categorieën'] = count($data);
+    $summary['Totaal producten']   = array_sum(array_column($data, 'aantal_producten'));
+    $summary['Totaal voorraad']    = array_sum(array_column($data, 'totaal_voorraad'));
+}
+
+elseif ($type === 'ontvangen_per_maand') {
+    $stmt = $conn->prepare("
+        SELECT
+            c.product_categorie AS categorie,
+            COUNT(p.idProducts)        AS aantal_producten,
+            COALESCE(SUM(p.aantal), 0) AS totaal_aantal
         FROM Products p
         INNER JOIN Categories c ON p.Categories_idCategories = c.idCategories
         WHERE p.ontvangst_datum BETWEEN ? AND ?
         GROUP BY c.idCategories, c.product_categorie
         ORDER BY totaal_aantal DESC
-    ";
-    
-    $stmt = $conn->prepare($sql);
+    ");
     $stmt->bind_param('ss', $startDatum, $eindDatum);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $data = $result->fetch_all(MYSQLI_ASSOC);
-    
-    // Bereken totalen
-    foreach ($data as $row) {
-        $totaalProducten += $row['aantal_producten'];
-        $totaalAantal += $row['totaal_aantal'];
-    }
-    
+    $data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
+
+    $summary['Categorieën']               = count($data);
+    $summary['Verschillende producten']   = array_sum(array_column($data, 'aantal_producten'));
+    $summary['Totaal eenheden ontvangen'] = array_sum(array_column($data, 'totaal_aantal'));
+}
+
+elseif ($type === 'pakketten_per_maand') {
+    $stmt = $conn->prepare("
+        SELECT
+            v.idVoedselpakketten  AS pakket_id,
+            v.samenstellings_datum,
+            CONCAT(k.voornaam, ' ', k.achternaam) AS klant_naam,
+            k.postcode,
+            COUNT(vhp.Products_idProducts) AS aantal_producten
+        FROM Voedselpakketten v
+        LEFT JOIN Klanten k
+            ON v.klanten_idKlanten = k.idKlanten
+        LEFT JOIN Voedselpakketten_has_Products vhp
+            ON vhp.Voedselpakketten_idVoedselpakketten = v.idVoedselpakketten
+        WHERE v.samenstellings_datum BETWEEN ? AND ?
+        GROUP BY v.idVoedselpakketten, v.samenstellings_datum,
+                 k.voornaam, k.achternaam, k.postcode
+        ORDER BY v.samenstellings_datum DESC
+    ");
+    $stmt->bind_param('ss', $startDatum, $eindDatum);
+    $stmt->execute();
+    $data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    $summary['Pakketten uitgedeeld'] = count($data);
+    $summary['Unieke klanten']       = count(array_unique(array_column($data, 'klant_naam')));
+    $summary['Totaal productregels'] = array_sum(array_column($data, 'aantal_producten'));
+}
+
+elseif ($type === 'klantenoverzicht') {
+    $stmt = $conn->prepare("
+        SELECT
+            k.idKlanten,
+            CONCAT(k.voornaam, ' ', k.achternaam) AS naam,
+            k.woonplaats,
+            k.postcode,
+            k.`status`,
+            (k.aantal_volwassen + k.aantal_kinderen + k.aantal_babies) AS gezinsgrootte,
+            COUNT(v.idVoedselpakketten) AS aantal_pakketten
+        FROM Klanten k
+        LEFT JOIN Voedselpakketten v ON v.klanten_idKlanten = k.idKlanten
+        GROUP BY k.idKlanten
+        ORDER BY k.achternaam, k.voornaam
+    ");
+    $stmt->execute();
+    $data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    $goedgekeurd = array_filter($data, fn($r) => $r['status'] === 'Goedgekeurd');
+    $summary['Totaal klanten']     = count($data);
+    $summary['Goedgekeurd']        = count($goedgekeurd);
+    $summary['Gem. gezinsgrootte'] = count($data) > 0
+        ? round(array_sum(array_column($data, 'gezinsgrootte')) / count($data), 1)
+        : 0;
+}
+
+elseif ($type === 'leveringen_per_maand') {
+    $stmt = $conn->prepare("
+        SELECT
+            lev.leverings_datum,
+            l.bedrijfsnaam,
+            l.contactpersoon,
+            l.telefoonnummer
+        FROM Leveringen lev
+        INNER JOIN Leverancier l ON l.idLeverancier = lev.Leverancier_idLeverancier
+        WHERE lev.leverings_datum BETWEEN ? AND ?
+        ORDER BY lev.leverings_datum DESC
+    ");
+    $stmt->bind_param('ss', $startDatum, $eindDatum);
+    $stmt->execute();
+    $data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    $summary['Leveringen']          = count($data);
+    $summary['Unieke leveranciers'] = count(array_unique(array_column($data, 'bedrijfsnaam')));
+}
+
 } catch (Exception $e) {
     $error = "Database fout: " . $e->getMessage();
 }
 
-// Voedselpakketten statistieken voor deze maand
-$pakkettenCount = 0;
-try {
-    $sqlPakketten = "SELECT COUNT(*) as aantal FROM Voedselpakketten 
-                     WHERE samenstellings_datum BETWEEN ? AND ?";
-    $stmtPakketten = $conn->prepare($sqlPakketten);
-    $stmtPakketten->bind_param('ss', $startDatum, $eindDatum);
-    $stmtPakketten->execute();
-    $resultPakketten = $stmtPakketten->get_result();
-    $pakkettenCount = $resultPakketten->fetch_assoc()['aantal'] ?? 0;
-    $stmtPakketten->close();
-} catch (Exception $e) {
-    // Stil falen
-}
-
 $conn->close();
+
+$rapportTitels = [
+    'voorraad_per_categorie' => 'Voorraad per Productcategorie',
+    'ontvangen_per_maand'    => 'Producten Ontvangen per Maand',
+    'pakketten_per_maand'    => 'Voedselpakketten per Maand',
+    'klantenoverzicht'       => 'Klantenoverzicht',
+    'leveringen_per_maand'   => 'Leveringen per Maand',
+];
+$rapportTitel = $rapportTitels[$type] ?? 'Rapportage';
 ?>
 <!DOCTYPE html>
 <html lang="nl">
@@ -96,35 +178,82 @@ body {
     background: #fff;
     padding: 20px;
     border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
     margin-bottom: 20px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
-.labels-row {
+.filter-form {
     display: flex;
-    gap: 20px;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
 }
 
-.labels-row label {
-    font-size: 14px;
-    color: #555;
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
     flex: 1;
+    min-width: 160px;
 }
 
-.selects-row {
-    display: flex;
-    gap: 20px;
+.filter-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
 }
 
-.selects-row select {
-    padding: 6px 10px;
+.filter-group select {
+    padding: 8px 10px;
     border-radius: 6px;
     border: 1px solid #ccc;
-    min-width: 220px;
+    font-size: 14px;
+}
+
+.btn-filter {
+    padding: 8px 20px;
+    background: #2c4a6b;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    align-self: flex-end;
+    white-space: nowrap;
+}
+
+.btn-filter:hover { background: #1e3550; }
+
+/* SUMMARY CARDS */
+.summary-cards {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.summary-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 18px 24px;
     flex: 1;
+    min-width: 140px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    text-align: center;
+    border-top: 3px solid #2c4a6b;
+}
+
+.summary-card .sum-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #2c4a6b;
+}
+
+.summary-card .sum-label {
+    font-size: 13px;
+    color: #666;
+    margin-top: 4px;
 }
 
 /* REPORT */
@@ -136,67 +265,59 @@ body {
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
-.report-box h2 {
-    margin-top: 0;
-    margin-bottom: 30px;
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
 }
+
+.report-header h2 { margin: 0; }
 
 .empty {
     text-align: center;
     color: #888;
     margin-top: 40px;
+    font-size: 15px;
 }
 
-/* REPORT TABLE */
-.report-table {
+/* DATA TABLE */
+.data-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
+    margin-top: 10px;
 }
 
-.report-table th,
-.report-table td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-}
-
-.report-table th {
+.data-table th {
     background: #2c4a6b;
     color: white;
+    padding: 12px;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.data-table td {
+    padding: 12px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.data-table tr:hover { background: #f8f9fa; }
+
+.total-row { background: #d4edda !important; }
+
+.badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
     font-weight: 600;
 }
 
-.report-table tbody tr:hover {
-    background: #f5f5f5;
-}
-
-.report-table tfoot {
-    background: #e8f4f8;
-    font-weight: bold;
-}
-
-.total-row {
-    background: #d4edda !important;
-}
-
-/* SUMMARY BOX */
-.summary-box {
-    margin-top: 30px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border-left: 4px solid #2c4a6b;
-}
-
-.summary-box h3 {
-    margin-top: 0;
-    color: #2c4a6b;
-}
-
-.summary-box p {
-    margin: 8px 0;
-}
+.badge-green  { background: #dcfce7; color: #16a34a; }
+.badge-yellow { background: #fef9c3; color: #ca8a04; }
+.badge-gray   { background: #f1f5f9; color: #64748b; }
 
 .error {
     color: #dc3545;
@@ -218,105 +339,191 @@ body {
 
         <!-- FILTER -->
         <div class="filter-box">
-            <form method="GET">
-                
-                <div class="labels-row">
+            <form method="GET" class="filter-form">
+                <div class="filter-group">
                     <label>Rapport Type</label>
-                    <label>Maand</label>
-                    <label>Jaar</label>
-                </div>
-
-                <div class="selects-row">
                     <select name="type">
-                        <option value="productcategorie">Maandoverzicht per Productcategorie</option>
-                    </select>
-
-                    <select name="maand">
-                        <?php
-                        $maanden = ["Januari","Februari","Maart","April","Mei","Juni","Juli","Augustus","September","Oktober","November","December"];
-                        foreach ($maanden as $m) {
-                            $selected = ($m == $maand) ? 'selected' : '';
-                            echo "<option $selected>$m</option>";
-                        }
-                        ?>
-                    </select>
-
-                    <select name="jaar">
-                        <?php
-                        for ($i = 2024; $i <= 2030; $i++) {
-                            $selected = ($i == $jaar) ? 'selected' : '';
-                            echo "<option $selected>$i</option>";
-                        }
-                        ?>
+                        <option value="voorraad_per_categorie" <?= $type === 'voorraad_per_categorie' ? 'selected' : '' ?>>Voorraad per Productcategorie</option>
+                        <option value="ontvangen_per_maand"    <?= $type === 'ontvangen_per_maand'    ? 'selected' : '' ?>>Producten Ontvangen per Maand</option>
+                        <option value="pakketten_per_maand"    <?= $type === 'pakketten_per_maand'    ? 'selected' : '' ?>>Voedselpakketten per Maand</option>
+                        <option value="klantenoverzicht"       <?= $type === 'klantenoverzicht'       ? 'selected' : '' ?>>Klantenoverzicht</option>
+                        <option value="leveringen_per_maand"  <?= $type === 'leveringen_per_maand'   ? 'selected' : '' ?>>Leveringen per Maand</option>
                     </select>
                 </div>
 
+                <div class="filter-group">
+                    <label>Maand</label>
+                    <select name="maand">
+                        <?php foreach (array_keys($maandNamen) as $m): ?>
+                            <option value="<?= $m ?>" <?= $m === $maand ? 'selected' : '' ?>><?= $m ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Jaar</label>
+                    <select name="jaar">
+                        <?php for ($i = 2024; $i <= 2030; $i++): ?>
+                            <option value="<?= $i ?>" <?= $i === $jaar ? 'selected' : '' ?>><?= $i ?></option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-filter">Toepassen</button>
             </form>
         </div>
 
-        <!-- REPORT -->
+        <?php if (!empty($summary)): ?>
+        <div class="summary-cards">
+            <?php foreach ($summary as $label => $value): ?>
+            <div class="summary-card">
+                <div class="sum-value"><?= htmlspecialchars((string)$value) ?></div>
+                <div class="sum-label"><?= htmlspecialchars($label) ?></div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
         <div class="report-box">
-            <h2>Maandoverzicht per Productcategorie - <?= htmlspecialchars($maand) ?> <?= htmlspecialchars($jaar) ?></h2>
-            
-            <?php if (isset($error)): ?>
+            <div class="report-header">
+                <h2><?= htmlspecialchars($rapportTitel) ?></h2>
+                <small style="color:#888"><?= htmlspecialchars($maand) ?> <?= $jaar ?></small>
+            </div>
+
+            <?php if ($error): ?>
                 <p class="error"><?= htmlspecialchars($error) ?></p>
+
             <?php elseif (empty($data)): ?>
                 <p class="empty">Geen gegevens beschikbaar voor de geselecteerde periode</p>
-            <?php else: ?>
-                <table class="report-table">
-                    <thead>
-                        <tr>
-                            <th>Product Categorie</th>
-                            <th>Aantal Producten</th>
-                            <th>Totaal Aantal</th>
-                            <th>Percentage</th>
-                        </tr>
-                    </thead>
+
+            <?php elseif ($type === 'voorraad_per_categorie'): ?>
+                <table class="data-table">
+                    <thead><tr>
+                        <th>Categorie</th>
+                        <th>Aantal Producten</th>
+                        <th>Totaal Voorraad</th>
+                    </tr></thead>
                     <tbody>
                         <?php foreach ($data as $row): ?>
-                            <?php 
-                                $percentage = $totaalAantal > 0 
-                                    ? round(($row['totaal_aantal'] / $totaalAantal) * 100, 1) 
-                                    : 0;
-                            ?>
-                            <tr>
-                                <td><?= htmlspecialchars($row['categorie']) ?></td>
-                                <td><?= htmlspecialchars($row['aantal_producten']) ?></td>
-                                <td><?= htmlspecialchars($row['totaal_aantal']) ?></td>
-                                <td><?= $percentage ?>%</td>
-                            </tr>
+                        <tr>
+                            <td><?= htmlspecialchars($row['categorie']) ?></td>
+                            <td><?= (int)$row['aantal_producten'] ?></td>
+                            <td><?= (int)$row['totaal_voorraad'] ?></td>
+                        </tr>
                         <?php endforeach; ?>
                     </tbody>
-                    <tfoot>
-                        <tr class="total-row">
-                            <td><strong>Totaal</strong></td>
-                            <td><strong><?= $totaalProducten ?></strong></td>
-                            <td><strong><?= $totaalAantal ?></strong></td>
-                            <td><strong>100%</strong></td>
-                        </tr>
-                    </tfoot>
+                    <tfoot><tr class="total-row">
+                        <td><strong>Totaal</strong></td>
+                        <td><strong><?= array_sum(array_column($data, 'aantal_producten')) ?></strong></td>
+                        <td><strong><?= array_sum(array_column($data, 'totaal_voorraad')) ?></strong></td>
+                    </tr></tfoot>
                 </table>
-                
-                <div class="summary-box">
-                    <h3>Samenvatting <?= htmlspecialchars($maand) ?> <?= htmlspecialchars($jaar) ?></h3>
-                    <p><strong>Totaal producten ontvangen:</strong> <?= $totaalAantal ?></p>
-                    <p><strong>Aantal verschillende producten:</strong> <?= $totaalProducten ?></p>
-                    <p><strong>Voedselpakketten samengesteld:</strong> <?= $pakkettenCount ?></p>
-                </div>
+
+            <?php elseif ($type === 'ontvangen_per_maand'): ?>
+                <?php $totaalAantal = array_sum(array_column($data, 'totaal_aantal')); ?>
+                <table class="data-table">
+                    <thead><tr>
+                        <th>Categorie</th>
+                        <th>Verschillende Producten</th>
+                        <th>Totaal Eenheden</th>
+                        <th>Percentage</th>
+                    </tr></thead>
+                    <tbody>
+                        <?php foreach ($data as $row): ?>
+                        <?php $pct = $totaalAantal > 0 ? round($row['totaal_aantal'] / $totaalAantal * 100, 1) : 0; ?>
+                        <tr>
+                            <td><?= htmlspecialchars($row['categorie']) ?></td>
+                            <td><?= (int)$row['aantal_producten'] ?></td>
+                            <td><?= (int)$row['totaal_aantal'] ?></td>
+                            <td><?= $pct ?>%</td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                    <tfoot><tr class="total-row">
+                        <td><strong>Totaal</strong></td>
+                        <td><strong><?= array_sum(array_column($data, 'aantal_producten')) ?></strong></td>
+                        <td><strong><?= $totaalAantal ?></strong></td>
+                        <td><strong>100%</strong></td>
+                    </tr></tfoot>
+                </table>
+
+            <?php elseif ($type === 'pakketten_per_maand'): ?>
+                <table class="data-table">
+                    <thead><tr>
+                        <th>#</th>
+                        <th>Datum</th>
+                        <th>Klant</th>
+                        <th>Postcode</th>
+                        <th>Producten</th>
+                    </tr></thead>
+                    <tbody>
+                        <?php foreach ($data as $row): ?>
+                        <tr>
+                            <td><?= (int)$row['pakket_id'] ?></td>
+                            <td><?= htmlspecialchars($row['samenstellings_datum']) ?></td>
+                            <td><?= htmlspecialchars($row['klant_naam'] ?? '—') ?></td>
+                            <td><?= htmlspecialchars($row['postcode']   ?? '—') ?></td>
+                            <td><?= (int)$row['aantal_producten'] ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+
+            <?php elseif ($type === 'klantenoverzicht'): ?>
+                <table class="data-table">
+                    <thead><tr>
+                        <th>Naam</th>
+                        <th>Woonplaats</th>
+                        <th>Postcode</th>
+                        <th>Gezinsgrootte</th>
+                        <th>Pakketten</th>
+                        <th>Status</th>
+                    </tr></thead>
+                    <tbody>
+                        <?php foreach ($data as $row):
+                            $badgeClass = $row['status'] === 'Goedgekeurd'
+                                ? 'badge-green'
+                                : ($row['status'] === 'In behandeling' ? 'badge-yellow' : 'badge-gray');
+                        ?>
+                        <tr>
+                            <td><?= htmlspecialchars($row['naam']) ?></td>
+                            <td><?= htmlspecialchars($row['woonplaats']) ?></td>
+                            <td><?= htmlspecialchars($row['postcode']) ?></td>
+                            <td><?= (int)$row['gezinsgrootte'] ?></td>
+                            <td><?= (int)$row['aantal_pakketten'] ?></td>
+                            <td><span class="badge <?= $badgeClass ?>"><?= htmlspecialchars($row['status']) ?></span></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+
+            <?php elseif ($type === 'leveringen_per_maand'): ?>
+                <table class="data-table">
+                    <thead><tr>
+                        <th>Datum</th>
+                        <th>Leverancier</th>
+                        <th>Contactpersoon</th>
+                        <th>Telefoonnummer</th>
+                    </tr></thead>
+                    <tbody>
+                        <?php foreach ($data as $row): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($row['leverings_datum']) ?></td>
+                            <td><?= htmlspecialchars($row['bedrijfsnaam']) ?></td>
+                            <td><?= htmlspecialchars($row['contactpersoon']) ?></td>
+                            <td><?= htmlspecialchars($row['telefoonnummer']) ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+
             <?php endif; ?>
         </div>
     </main>
 
 </div>
 
-<script>
-// Auto refresh bij wijzigen
-document.querySelectorAll("select").forEach(select => {
-    select.addEventListener("change", () => {
-        select.form.submit();
-    });
-});
-</script>
+<script src="script/nav.js"></script>
 
 </body>
 </html>
