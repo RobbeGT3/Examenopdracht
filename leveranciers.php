@@ -1,17 +1,56 @@
 <?php
+// Deze pagina toont alle leveranciers uit de database
+// en laat je nieuwe leveranciers toevoegen
+
+// Start de PHP sessie (nodig voor login)
 session_start();
 
-require_once __DIR__ . '/common/auth.php';
-
+// Bepaal welke pagina dit is (voor het menu)
 $currentPage = basename($_SERVER['PHP_SELF']);
+
+// Verbind met de database
 require_once __DIR__ . '/common/dbconnection.php';
 
-$stmt = $conn->prepare("SELECT * FROM Leverancier ORDER BY bedrijfsnaam ASC;");
-$stmt->execute();
-$result = $stmt->get_result();
-$leveranciers = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+$sql = "
+    SELECT 
+        l.idLeverancier,
+        l.bedrijfsnaam,
+        l.contactpersoon,
+        l.`e-mailadres` as email,
+        l.telefoonnummer,
+        l.adres,
+        l.postcode,
+        l.plaats,
+        -- Subquery: vind de eerstvolgende levering die nog niet is geweest
+        (SELECT MIN(lev.leverings_datum) 
+         FROM Leveringen lev 
+         WHERE lev.Leverancier_idLeverancier = l.idLeverancier 
+         AND lev.leverings_datum > NOW()
+        ) as eerstvolgende_levering
+    FROM Leverancier l
+    ORDER BY l.bedrijfsnaam
+";
+
+// Voer de query uit
+$result = mysqli_query($conn, $sql);
+
+// Zet de resultaten in een array
+$leveranciers = [];
+while ($row = mysqli_fetch_assoc($result)) {
+    $leveranciers[] = $row;
+}
+
+// Sluit de database verbinding
 $conn->close();
+
+function formatDatum($datum) {
+    // Als er geen datum is, toon "Geen gepland"
+    if (!$datum) return 'Geen gepland';
+    
+    // Maak een DateTime object en formatteer het
+    $dt = new DateTime($datum);
+    return $dt->format('d-m-Y H:i'); // bv: 15-05-2025 14:30
+}
 ?>
 <!DOCTYPE html>
 <html lang="nl">
@@ -102,6 +141,24 @@ tbody tr:hover {
 
 .edit { color: #2c4a6b; }
 .delete { color: red; }
+
+.btn-edit, .btn-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 5px;
+}
+
+.btn-edit:hover {
+    background: #e3f2fd;
+    border-radius: 4px;
+}
+
+.btn-delete:hover {
+    background: #ffebee;
+    border-radius: 4px;
+}
 
 
 .modal-overlay {
@@ -210,23 +267,29 @@ tbody tr:hover {
           <th>Contactpersoon</th>
           <th>E-mail</th>
           <th>Telefoon</th>
-          <th>Volgende Levering</th>
-          <th>Frequentie</th>
+          <th>Adres</th>
+          <th>Postcode</th>
+          <th>Plaats</th>
+          <th>Eerstvolgende Levering</th>
           <th>Acties</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="leveranciersTableBody">
         <?php foreach ($leveranciers as $lev): ?>
-        <tr data-id="<?= $lev['idLeverancier'] ?>" data-adres="<?= htmlspecialchars($lev['adres'] ?? '') ?>">
-          <td><?= htmlspecialchars($lev['bedrijfsnaam']) ?></td>
-          <td><?= htmlspecialchars($lev['contactpersoon']) ?></td>
-          <td><?= htmlspecialchars($lev['email']) ?></td>
-          <td><?= htmlspecialchars($lev['telefoon']) ?></td>
-          <td><?= htmlspecialchars($lev['volgende_levering']) ?></td>
-          <td><?= htmlspecialchars($lev['leverfrequentie']) ?></td>
+        <tr data-id="<?= $lev['idLeverancier'] ?>">
+          <td><?= htmlspecialchars($lev['bedrijfsnaam'] ?? '') ?></td>
+          <td><?= htmlspecialchars($lev['contactpersoon'] ?? '') ?></td>
+          <td><?= htmlspecialchars($lev['email'] ?? '') ?></td>
+          <td><?= htmlspecialchars($lev['telefoonnummer'] ?? '') ?></td>
+          <td><?= htmlspecialchars($lev['adres'] ?? '') ?></td>
+          <td><?= htmlspecialchars($lev['postcode'] ?? '') ?></td>
+          <td><?= htmlspecialchars($lev['plaats'] ?? '') ?></td>
+          <td><?= formatDatum($lev['eerstvolgende_levering']) ?></td>
           <td class="actions">
-            <button class="btn-edit-lev" data-id="<?= $lev['idLeverancier'] ?>">✏️</button>
-            <button class="btn-delete-lev" data-id="<?= $lev['idLeverancier'] ?>">🗑️</button>
+            <button class="btn-edit" onclick="editLeverancier(<?= $lev['idLeverancier'] ?>)" title="Bewerken">✏️</button>
+            <!-- <button class="btn-delete" type="button" onclick="if(confirm('Leverancier verwijderen?')){fetch('actions/leverancier/deleteLeverancier.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:<?= $lev['idLeverancier'] ?>})}).then(r=>r.json()).then(d=>{if(d.success){document.querySelector('tr[data-id=\'<?= $lev['idLeverancier'] ?>\']').remove();alert('Verwijderd!');}else{alert(d.message);}}).catch(e=>alert('Fout: '+e));}" title="Verwijderen">🗑️</button> -->
+            <button class="btn-delete" type="button" onclick="deleteLeverancier(<?= $lev['idLeverancier'] ?>)" title="Verwijderen">🗑️</button>
+
           </td>
         </tr>
         <?php endforeach; ?>
@@ -236,66 +299,76 @@ tbody tr:hover {
 
 </div>
 
-<!-- Nieuwe Leverancier Modal -->
+<!-- MODAL -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
 
     <div class="modal-header">
-      <h3 id="modalTitle">Nieuwe Leverancier</h3>
+      <h3>Nieuwe Leverancier</h3>
       <span class="close" id="closeModal">&times;</span>
     </div>
 
-    <form id="leverancierForm">
-      <input type="hidden" id="leverancierId">
+    <form>
       <div class="form-row">
         <div class="form-group">
           <label>Bedrijfsnaam *</label>
-          <input type="text" id="bedrijf" required>
+          <input type="text" id="bedrijf">
         </div>
 
         <div class="form-group">
           <label>Adres *</label>
-          <input type="text" id="adres" required>
+          <input type="text" id="adres">
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label>Naam Contactpersoon *</label>
-          <input type="text" id="contact" required>
+          <input type="text" id="contact">
         </div>
 
         <div class="form-group">
           <label>E-mailadres *</label>
-          <input type="email" id="email" required>
+          <input type="email" id="email">
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label>Telefoonnummer *</label>
-          <input type="text" id="telefoon" required>
+          <input type="text" id="telefoon">
         </div>
 
         <div class="form-group">
-          <label>Eerstvolgende Levering *</label>
-          <input type="datetime-local" id="levering" required>
+          <label>Postcode *</label>
+          <input type="text" id="postcode">
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
+          <label>Plaats *</label>
+          <input type="text" id="plaats">
+        </div>
+        <div class="form-group">
           <label>Leverfrequentie *</label>
-          <select id="frequentie" required>
+          <select id="frequentie">
             <option value="dagelijks">Dagelijks</option>
-            <option value="wekelijks">Wekelijks</option>
+            <option value="wekelijks" selected>Wekelijks</option>
             <option value="maandelijks">Maandelijks</option>
           </select>
         </div>
       </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Eerste Levering *</label>
+          <input type="datetime-local" id="eersteLevering" value="2025-01-01T09:00">
+        </div>
+      </div>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" id="cancelModal">Annuleren</button>
-        <button type="submit" class="btn-save" id="submitBtn">Toevoegen</button>
+        <button type="submit" class="btn-save">Toevoegen</button>
       </div>
     </form>
 
@@ -303,109 +376,162 @@ tbody tr:hover {
 </div>
 
 <script>
-const modal = document.getElementById("modal");
-const form = document.getElementById('leverancierForm');
-let isEditMode = false;
 
-// Open modal voor nieuwe leverancier
+// TEST: Laat zien dat JavaScript werkt
+console.log('JavaScript is geladen!');
+
+// Haal HTML elementen op die we nodig hebben
+const modal = document.getElementById("modal");          // Het popup venster
+const form = document.querySelector('form');                // Het formulier
+
+// Open de modal als je op "+ Nieuwe Leverancier" klikt
 document.getElementById("openModal").onclick = () => {
-  isEditMode = false;
-  document.getElementById('modalTitle').textContent = 'Nieuwe Leverancier';
-  document.getElementById('submitBtn').textContent = 'Toevoegen';
-  document.getElementById('leverancierId').value = '';
-  form.reset();
-  modal.style.display = "flex";
-};
-
-document.getElementById("closeModal").onclick = () => modal.style.display = "none";
-document.getElementById("cancelModal").onclick = () => modal.style.display = "none";
-
-window.onclick = (e) => {
-  if (e.target === modal) {
-    modal.style.display = "none";
-  }
-};
-
-// Form submit handler
-form.addEventListener('submit', (e) => {
-  e.preventDefault();
-
-  const data = {
-    id: document.getElementById('leverancierId').value || null,
-    bedrijfsnaam: document.getElementById('bedrijf').value,
-    adres: document.getElementById('adres').value,
-    contactpersoon: document.getElementById('contact').value,
-    email: document.getElementById('email').value,
-    telefoon: document.getElementById('telefoon').value,
-    volgende_levering: document.getElementById('levering').value,
-    leverfrequentie: document.getElementById('frequentie').value
-  };
-
-  const url = isEditMode ? 'actions/updateLeverancier.php' : 'actions/createLeverancier.php';
-
-  fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  })
-  .then(() => {
-    modal.style.display = 'none';
-    location.reload();
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    alert('Er is een fout opgetreden.');
-  });
-});
-
-// Bewerken
-document.querySelectorAll('.btn-edit-lev').forEach(btn => {
-  btn.addEventListener('click', function() {
-    const row = this.closest('tr');
-    const id = this.dataset.id;
-
-    isEditMode = true;
-    document.getElementById('modalTitle').textContent = 'Leverancier Bewerken';
-    document.getElementById('submitBtn').textContent = 'Bijwerken';
-    document.getElementById('leverancierId').value = id;
-
-    // Vul formulier met huidige data
-    const cells = row.querySelectorAll('td');
-    document.getElementById('bedrijf').value = cells[0].textContent;
-    document.getElementById('contact').value = cells[1].textContent;
-    document.getElementById('email').value = cells[2].textContent;
-    document.getElementById('telefoon').value = cells[3].textContent;
-    document.getElementById('levering').value = cells[4].textContent.replace(' ', 'T');
-    document.getElementById('frequentie').value = cells[5].textContent.toLowerCase();
-
-    // Adres ophalen uit data-attribuut of hidden field
-    document.getElementById('adres').value = row.dataset.adres || '';
-
+    // Reset het formulier voor een nieuwe leverancier
+    form.reset();
+    // Maak het datum/tijd veld leeg (form.reset() zet het terug naar default value)
+    document.getElementById('eersteLevering').value = '';
+    delete form.dataset.editId; // Verwijder edit ID zodat we weten dat dit nieuw is
+    document.querySelector('.modal-header h3').textContent = 'Nieuwe Leverancier';
+    document.querySelector('.btn-save').textContent = 'Toevoegen';
     modal.style.display = "flex";
-  });
+};
+
+// Sluit de modal als je op het xje klikt
+document.getElementById("closeModal").onclick = () => {
+    modal.style.display = "none";
+    // Maak het datum/tijd veld leeg na sluiten
+    document.getElementById('eersteLevering').value = '';
+};
+
+// Sluit de modal als je op Annuleren klikt
+document.getElementById("cancelModal").onclick = () => {
+    modal.style.display = "none";
+    // Maak het datum/tijd veld leeg na annuleren
+    document.getElementById('eersteLevering').value = '';
+};
+
+// Sluit de modal als je ergens buiten de model zelf klikt
+window.onclick = (e) => {
+    if (e.target === modal) {
+        modal.style.display = "none";
+        // Maak het datum/tijd veld leeg na sluiten
+        document.getElementById('eersteLevering').value = '';
+    }
+};
+
+form.addEventListener('submit', async (e) => {
+    // Voorkom dat het formulier op de normale manier wordt verstuurd
+    e.preventDefault();
+    
+    // Verzamel alle waarden uit het formulier
+    // Haal datum+tijd op uit het datetime-local veld (format: YYYY-MM-DDTHH:MM)
+    const eersteLevering = document.getElementById('eersteLevering').value.replace('T', ' ');
+    
+    // Check of we een bestaande leverancier bewerken (dan hebben we een ID)
+    const isEditing = form.dataset.editId ? true : false;
+    const leverancierId = form.dataset.editId || null;
+    
+    const leverancier = {
+        bedrijfsnaam: document.getElementById('bedrijf').value,
+        adres: document.getElementById('adres').value,
+        contactpersoon: document.getElementById('contact').value,
+        email: document.getElementById('email').value,
+        telefoonnummer: document.getElementById('telefoon').value,
+        postcode: document.getElementById('postcode').value,
+        plaats: document.getElementById('plaats').value,
+        leverfrequentie: document.getElementById('frequentie').value,
+        eersteLevering: eersteLevering
+    };
+    
+    // Als we bewerken, voeg het ID toe
+    if (isEditing) {
+        leverancier.id = leverancierId;
+    }
+    
+    try {
+        // Kies de juiste URL: edit voor bewerken, add voor nieuw
+        const url = isEditing 
+            ? 'actions/leverancier/editLeverancier.php' 
+            : 'actions/leverancier/addLeverancier.php';
+        
+        // Stuur de data naar de server via AJAX (fetch API)
+        const response = await fetch(url, {
+            method: 'POST',                           // POST = verstuur data
+            headers: { 'Content-Type': 'application/json' },  // We sturen JSON
+            body: JSON.stringify(leverancier)         // Zet het object om naar JSON string
+        });
+        
+        // Haal het resultaat op als JSON
+        const result = await response.json();
+        
+        // Controleer of het gelukt is
+        if (result.success) {
+            alert('Leverancier opgeslagen in database!');
+            location.reload();  // Herlaad de pagina om de nieuwe leverancier te zien
+        } else {
+            alert('Fout: ' + result.message);
+        }
+    } catch (error) {
+        alert('Er is een fout opgetreden: ' + error.message);
+    }
 });
 
-// Verwijderen
-document.querySelectorAll('.btn-delete-lev').forEach(btn => {
-  btn.addEventListener('click', function() {
-    const id = this.dataset.id;
-    const row = this.closest('tr');
-    const naam = row.querySelector('td').textContent;
-
-    if (!confirm(`Weet je zeker dat je leverancier "${naam}" wilt verwijderen?`)) return;
-
-    fetch('actions/deleteLeverancier.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: id })
+function deleteLeverancier(id) {
+    // Stuur verwijder request naar de server
+    fetch('actions/leverancier/deleteLeverancier.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id })
     })
-    .then(() => location.reload())
+    .then(response => response.text())
+    .then(text => {
+        console.log('Server response:', text);
+        const result = JSON.parse(text);
+        if (result.success) {
+            // Verwijder de rij uit de tabel (zonder pagina te herladen)
+            document.querySelector(`tr[data-id="${id}"]`).remove();
+            alert('Leverancier verwijderd!');
+        } else {
+            alert('Fout: ' + result.message);
+        }
+    })
     .catch(error => {
-      console.error('Error:', error);
-      alert('Er is een fout opgetreden bij het verwijderen.');
+        alert('Er is een fout opgetreden: ' + error.message);
+        console.error('Delete error:', error);
     });
-  });
-});
+}
+
+function editLeverancier(id) {
+    // Vind de juiste rij in de tabel
+    const row = document.querySelector(`tr[data-id="${id}"]`);
+    const cells = row.querySelectorAll('td');
+    
+    // Vul het formulier met de bestaande waarden
+    document.getElementById('bedrijf').value = cells[0].textContent.trim();   // Bedrijfsnaam
+    document.getElementById('contact').value = cells[1].textContent.trim();  // Contactpersoon
+    document.getElementById('email').value = cells[2].textContent.trim();    // Email
+    document.getElementById('telefoon').value = cells[3].textContent.trim(); // Telefoon
+    document.getElementById('adres').value = cells[4].textContent.trim();    // Adres
+    document.getElementById('postcode').value = cells[5].textContent.trim(); // Postcode
+    document.getElementById('plaats').value = cells[6].textContent.trim();   // Plaats
+    
+    // Laat het datum/tijd veld LEEG bij bewerken zodat gebruiker zelf kan kiezen
+    // De huidige eerstvolgende levering wordt alleen ter info getoond in de tabel
+    document.getElementById('eersteLevering').value = '';
+    
+    // Reset frequentie naar default (wekelijks) - kan aangepast worden door gebruiker
+    document.getElementById('frequentie').value = 'wekelijks';
+    
+    // Sla het ID op zodat we weten dat we bewerken, niet toevoegen
+    form.dataset.editId = id;
+    
+    // Verander de titel en knoptekst
+    document.querySelector('.modal-header h3').textContent = 'Leverancier Bewerken';
+    document.querySelector('.btn-save').textContent = 'Opslaan';
+    
+    // Open de modal
+    modal.style.display = "flex";
+}
 </script>
 
 </body>
