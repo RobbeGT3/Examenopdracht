@@ -452,7 +452,7 @@ form.addEventListener('submit', async (e) => {
         // Kies de juiste URL: edit voor bewerken, add voor nieuw
         const url = isEditing 
             ? 'actions/leverancier/editLeverancier.php' 
-            : 'actions/addLeverancier.php';
+            : 'actions/leverancier/addLeverancier.php';
         
         // Stuur de data naar de server via AJAX (fetch API)
         const response = await fetch(url, {
