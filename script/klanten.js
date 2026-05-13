@@ -3,13 +3,13 @@ let products = [];
 let currentClient = null;
 let isEditMode = false;
 
+//klanten en producten laden
 async function loadKlanten() {
   const res = await fetch("/actions/klanten/getKlanten.php");
   clients = await res.json();
 
   applyFiltersAndSort();
 }
-
 
 async function loadProducts() {
   const res = await fetch("/actions/klanten/getProductVoorraad.php");
@@ -35,6 +35,7 @@ function fillProductSelect() {
 loadKlanten();
 loadProducts();
 
+//Voedselpakketten functions
 document.addEventListener("click", (e) => {
 
   if (e.target.classList.contains("family-link")) {
@@ -143,6 +144,7 @@ editClientBtn.addEventListener("click", () => {
 
 const saveClientBtn = document.getElementById("saveClientBtn");
 
+//opslaan van nieuwe of gewijzigde klant
 saveClientBtn.addEventListener("click", async () => {
 
   const data = {

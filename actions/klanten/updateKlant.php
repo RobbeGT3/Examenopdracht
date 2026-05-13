@@ -12,9 +12,8 @@ $gezinsnaam = 'Familie '. $data['achternaam'];
 
 try {
 
-    $conn->begin_transaction(); // 🔥 START TRANSACTION
+    $conn->begin_transaction(); 
 
-    // ✅ 1. UPDATE klant
     $stmt = $conn->prepare("
         UPDATE Klanten SET
             gezinsnaam = ?,
@@ -49,6 +48,7 @@ try {
 
     $stmt->execute();
 
+    //Klantenwensen voor geüpdate klant refreshen
     $stmtDelete = $conn->prepare("DELETE FROM Klanten_has_Klantenwensen WHERE Klanten_idKlanten = ?");
     $stmtDelete->bind_param("i", $id);
     $stmtDelete->execute();
@@ -84,6 +84,7 @@ try {
 
     $newAllergies = $data['allergieen'] ?? [];
 
+    //registreren welke allergieëen zijn toegevoegd/verwijderd en die toevoegen/verwijderen in de database.
     $toAdd = array_diff($newAllergies, $oldAllergies);
     $toRemove = array_diff($oldAllergies, $newAllergies);
 

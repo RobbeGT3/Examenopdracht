@@ -49,6 +49,7 @@ try {
     $stmt->execute();
     $klantId = $stmt->insert_id;
 
+    //als wensen zijn geselecteerd die dan toevoegen in database
     if (!empty($data['wensen'])) {
         $stmt2 = $conn->prepare("
             INSERT INTO Klanten_has_Klantenwensen 
@@ -62,6 +63,7 @@ try {
         }
     }
 
+    //als allergieën zijn ingevuld die dan toevoegen in database
     if (!empty($data['allergieen'])) {
         $stmt3 = $conn->prepare("
             INSERT INTO Klanten_allergenen 
